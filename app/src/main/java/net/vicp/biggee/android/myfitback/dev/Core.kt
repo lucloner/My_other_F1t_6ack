@@ -3,17 +3,22 @@ package net.vicp.biggee.android.myfitback.dev
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
+import android.os.Handler
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.collection.LongSparseArray
-import androidx.collection.forEach
 import androidx.collection.isNotEmpty
 import androidx.collection.size
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.components.YAxis
+import com.github.mikephil.charting.components.YAxis.AxisDependency
 import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.highlight.Highlight
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener
 import com.onecoder.devicelib.FitBleKit
 import com.onecoder.devicelib.armband.api.ArmBandManager
 import com.onecoder.devicelib.armband.api.entity.StepFrequencyEntity
@@ -37,7 +42,7 @@ import java.util.concurrent.Executors
 import kotlin.math.max
 
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
-    DeviceStateChangeCallback, HeartRateListener {
+    DeviceStateChangeCallback, HeartRateListener, OnChartValueSelectedListener {
     lateinit var activity: Activity
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
@@ -45,6 +50,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     var chart: LineChart? = null
     lateinit var scanner: BleScanner
     lateinit var manager: Manager
+    lateinit var handler: Handler
     val bleBeanSet = HashSet<BluetoothBean>()
     val timeout = 5
     var now = -1L
@@ -115,12 +121,20 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
 
     fun paint(
         activity: Activity? = null,
+        handler: Handler,
         onOff: Boolean,
         lineChart: LineChart
     ) {
         syncActivity(activity)
+        this.handler = handler
         if (onOff) {
-            chart = lineChart
+            chart = lineChart.apply {
+                data = (data ?: LineData()).apply {
+                    if (dataSetCount < 1) {
+                        addDataSet(LineDataSet(null, "HeartRate"))
+                    }
+                }
+            }
         } else {
             chart = null
         }
@@ -239,52 +253,56 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
                 return@execute
             }
             try {
-                if (chart != null && heartRateHistory.isNotEmpty()) {
-                    var start = heartRateHistory.keyAt(0)
-                    var cnt = 0
-                    heartRateHistory.forEach { key, y ->
-                        val x = start - key
-                        val ent = Entry(x.toFloat(), y.toFloat())
-                        chart!!.apply {
-                            lineData.addEntry(ent, cnt++)
-                            setVisibleXRangeMaximum(max(x.toFloat(), chart!!.xChartMax))
-                            setVisibleYRangeMaximum(
-                                max(y.toFloat(), chart!!.yChartMax),
-                                YAxis.AxisDependency.LEFT
-                            )
-                        }
+                val msg = StringBuilder()
+                chart?.apply {
+                    if (heartRateHistory.isEmpty) {
+                        return@apply
                     }
+
+                    var hrMsg = ""
+                    var maxY = 100
+                    val cnt = heartRateHistory.size()
+                    val hasPainted = data.entryCount
+                    var realIndex = 0
+                    for (index in 0 until cnt) {
+                        val t = heartRateHistory.keyAt(index)
+                        val r = heartRateHistory[t] ?: continue
+                        if (r <= 0) {
+                            continue
+                        }
+                        val entry = Entry(index.toFloat() + hasPainted, r.toFloat())
+                        data.addEntry(entry, realIndex++)
+                        maxY = max(maxY, r)
+                        hrMsg = "心率:$r"
+                    }
+
+                    heartRateHistory.clear()
+
+                    handler.post {
+                        notifyDataSetChanged()
+                        setVisibleXRangeMaximum(6F)
+                        moveViewTo(data.entryCount - 7F, maxY.toFloat(), AxisDependency.LEFT)
+                    }
+
+                    msg.append(hrMsg)
                 }
 
-                val msg = StringBuilder()
                 if (!Alerter.isShowing) {
-                    var size: Int
-                    var time: Long
-                    if (heartRateHistory.isNotEmpty()) {
-                        size = heartRateHistory.size
-                        time = heartRateHistory.keyAt(size - 1)
-                        val hr = heartRateHistory[time] ?: -1
-                        if (hr > 0) {
-                            msg.append("心率$time:$hr\n")
-                        }
-                        heartRateHistory.clear()
-                    }
-
                     if (stepHistory.isNotEmpty()) {
-                        size = stepHistory.size
-                        time = stepHistory.keyAt(size - 1)
+                        var size = stepHistory.size
+                        var time = stepHistory.keyAt(size - 1)
                         val step = stepHistory[time]
                         if (step != null && step.stepFrequency > 0) {
-                            msg.append("计步器$time:${step.currentTotalSteps}\n")
+                            msg.append("\n计步器:${step.currentTotalSteps}")
                         }
                         stepHistory.clear()
                     }
 
                     if (battery >= 0) {
-                        msg.append("电池:${battery}\n")
+                        msg.append("\n电池:${battery}")
                     }
 
-                    if (msg.length <= 0) {
+                    if (msg.isEmpty()) {
                         msg.append("连接提示:未获得信息")
                     }
                     Alerter.create(activity).setText(msg.toString()).show()
@@ -348,5 +366,13 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         heartRateHistory.clear()
         stepHistory.clear()
         bleBeanSet.clear()
+    }
+
+    override fun onNothingSelected() {
+
+    }
+
+    override fun onValueSelected(e: Entry?, h: Highlight?) {
+        Toast.makeText(activity, e.toString(), Toast.LENGTH_SHORT).show()
     }
 }
