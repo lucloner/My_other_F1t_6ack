@@ -2,19 +2,23 @@ package net.vicp.biggee.android.myfitback.dev
 
 import android.Manifest
 import android.app.Activity
-import android.app.Service
-import android.bluetooth.BluetoothGatt
-import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
+import android.view.View
+import androidx.collection.LongSparseArray
+import androidx.collection.forEach
+import androidx.collection.isNotEmpty
+import androidx.collection.size
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.components.YAxis
+import com.github.mikephil.charting.data.Entry
 import com.onecoder.devicelib.FitBleKit
 import com.onecoder.devicelib.armband.api.ArmBandManager
 import com.onecoder.devicelib.armband.api.entity.StepFrequencyEntity
 import com.onecoder.devicelib.armband.api.interfaces.RealTimeDataListener
-import com.onecoder.devicelib.base.control.entity.BleDevice
+import com.onecoder.devicelib.base.api.Manager
 import com.onecoder.devicelib.base.control.entity.BluetoothBean
 import com.onecoder.devicelib.base.control.interfaces.BleScanCallBack
 import com.onecoder.devicelib.base.control.interfaces.CheckSystemBleCallback
@@ -26,169 +30,323 @@ import com.onecoder.devicelib.base.entity.DeviceType
 import com.onecoder.devicelib.base.protocol.entity.RTHeartRate
 import com.onecoder.devicelib.heartrate.api.HeartRateMonitorManager
 import com.onecoder.devicelib.heartrate.api.interfaces.HeartRateListener
-import com.onecoder.devicelib.heartrate.control.HeartRateMonitorController
-import com.onecoder.devicelib.heartrate.protocol.HeartRateMonitorProtocol
-import com.onecoder.devicelib.tracker.api.TrackerManager
-import com.onecoder.devicelib.utils.BluetoothUtils
 import com.tapadoo.alerter.Alerter
-import java.lang.Exception
-import java.util.*
-import java.util.stream.Collectors
+import kotlinx.coroutines.sync.Semaphore
+import net.vicp.biggee.android.myfitback.R
+import java.util.concurrent.Executors
+import kotlin.math.max
 
-object Core {
-    val sdk by lazy { FitBleKit.getInstance() }
-    val blService by lazy {
-        var blService = BluetoothLeService.getInstance(context)
-        while (blService == null) {
-            blService = BluetoothLeService.getInstance(context)
-            Thread.sleep(10)
-        }
-        return@lazy blService
-    }
-    val scanner by lazy {
-        BleScanner().apply {
-            addNameFilter(DeviceType.HRMonitor, arrayOf("BD"))
-            //addNameFilter(DeviceType.ArmBand)
-            registerDeviceStatusReceiver(context)
-        }
-    }
-    lateinit var context: Context
+object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
+    DeviceStateChangeCallback, HeartRateListener {
+    lateinit var activity: Activity
+    lateinit var sdk: FitBleKit
+    lateinit var blService: BluetoothLeService
     lateinit var baseDevice: BaseDevice
-    fun t1(activity: Activity) {
-        context = activity
-        if (sdk.initSDK(activity)) {
-            Alerter.create(activity).setText("Succeed").show()
-        } else {
-            Alerter.create(activity).setText("Failed").show()
-            //return
-        }
-
-        openBluetooth(activity)
-        scanner.startScan(object : BleScanCallBack{
-            override fun unFindDevice() {
-                Log.i("CORE_RUN", "0.1_")
-            }
-
-            override fun findDevice(p0: BluetoothBean?) {
-                Log.i("CORE_RUN", "0.2_${p0?.bleDevice?.name}")
-                scanner.stopScan()
-            }
-        })
-
-
-
-        Log.e(
-            "CORE",
-            "bl:1${blService}:${BluetoothLeService.getImportanceOfNotificationChannel()}:${BluetoothLeService.getNotificationChannelId()}:${BluetoothLeService.getNotificationChannelName()}"
-        )
-        blService ?: return
-
-        Log.e("CORE", "bl:2")
-        //val hr = ArmBandManager.getInstance()
-        val hr = HeartRateMonitorManager.getInstance()
-        hr.setHeartRateListener(object : HeartRateListener {
-            override fun onHeartRateValueChange(p0: MutableList<RTHeartRate>?) {
-                Log.i("CORE_RUN", "1.1_${p0?.last()?.heartRate}")
-            }
-
-            override fun onRealTimeHeartRateValue(p0: RTHeartRate?) {
-                Log.i("CORE_RUN", "1.2_${p0?.heartRate}")
-            }
-        })
-
-        hr.apply {
-            disconnect(false)
-            closeDevice()
-            refreshDeviceCache()
-
-//            registerRealTimeDataListner(object : RealTimeDataListener{
-//                override fun onRealTimeHeartRateData(p0: RTHeartRate?) {
-//                    Log.i("CORE_RUN", "1_${p0?.heartRate}")
-//                }
-//
-//                override fun onRealTimeStepFrequencyData(p0: StepFrequencyEntity?) {
-//                    Log.i("CORE_RUN", "2_${p0?.currentTotalSteps}")
-//                }
-//            })
-            registerCheckSystemBleCallback(object : CheckSystemBleCallback {
-                override fun onBleSwitchedBySystem(p0: Boolean) {
-                    Log.i("CORE_RUN", "3_${p0}")
-                }
-
-                override fun onRequestSwitchOnBle() {
-                    Log.i("CORE_RUN", "4_")
-                }
-            })
-            registerStateChangeCallback(object : DeviceStateChangeCallback {
-                override fun onEnableWriteToDevice(p0: String?, p1: Boolean) {
-                    Log.i("CORE_RUN", "5_${p0} $p1")
-                }
-
-                override fun onStateChange(p0: String?, p1: Int) {
-                    Log.i("CORE_RUN", "6_${p0} $p1")
-                }
-            })
-
-            baseDevice.deviceType = DeviceType.HRMonitor
-            connectDevice(baseDevice)
-            Alerter.create(activity).setText("Succeed01${connectDevice(baseDevice)}").show()
-
-
-        }
-
-
-    }
-
-    private val permissions = arrayOf(
+    var chart: LineChart? = null
+    lateinit var scanner: BleScanner
+    lateinit var manager: Manager
+    val bleBeanSet = HashSet<BluetoothBean>()
+    val timeout = 5
+    var now = -1L
+    var connected = false
+    val deviceTypes = arrayOf(
+        DeviceType.ArmBand,
+        //DeviceType.BikeComputer,
+        //DeviceType.Cadence,
+        DeviceType.HRMonitor,
+        //DeviceType.HubConfig,
+        //DeviceType.Jump,
+        //DeviceType.KettleBell,
+        //DeviceType.Scale,
+        DeviceType.Tracker
+    )
+    val permissions = arrayOf(
         Manifest.permission.BLUETOOTH,
         Manifest.permission.BLUETOOTH_ADMIN,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.FOREGROUND_SERVICE
     )
+    val heartRateHistory = LongSparseArray<Int>()
+    val stepHistory = LongSparseArray<StepFrequencyEntity>()
+    var battery = -1
+    val paintSemaphore = Semaphore(1)
+    val pool = Executors.newWorkStealingPool()
 
-    fun openBluetooth(activity: Activity) {
-        this.context = activity
+    fun syncActivity(activity: Activity?): Activity {
+        if (activity != null && (!this::activity.isInitialized || this.activity != activity)) {
+            this.activity = activity
+        }
+        return this.activity
+    }
+
+    fun queryPermissions(activity: Activity? = null) {
         val queryPermissions = permissions.toMutableList().apply {
             removeIf {
                 ContextCompat.checkSelfPermission(
-                    activity,
+                    syncActivity(activity),
                     it
                 ) == PackageManager.PERMISSION_GRANTED
             }
         }
-
         if (queryPermissions.isNotEmpty()) {
             ActivityCompat.requestPermissions(
-                activity,
+                this.activity,
                 queryPermissions.toTypedArray(),
-                queryPermissions.hashCode() and 255
+                permissions.hashCode() and 255
             )
-            Alerter.create(activity).setText("permission is not ok!").show()
-            Log.e("CORE", "not ok")
         }
+    }
 
-        val blDev = BluetoothUtils.getBondedBluetoothClassicDevices()
-        var msg =
-            "open:${BluetoothUtils.openBluetooth()} support:${BluetoothUtils.isBleSupported()} enabled:${BluetoothUtils.isBluetoothEnabled()} bonded:${blDev.stream()
-                .map { it.name }.collect(Collectors.toList())}"
+    fun t1(activity: Activity? = null) {
+        Alerter.create(syncActivity(activity)).setText("测试阶段2\n此处已无代码").show()
+    }
 
-        Alerter.create(activity)
-            .setText(msg)
-            .show()
-        Log.e("CORE", "bl:$msg")
-
-        val target = blDev.first { it.name.startsWith("BD") }
-
-        baseDevice = BaseDevice().apply {
-            macAddress = target.address
-            deviceType = DeviceType.ArmBand
-            name = target.name
+    fun connect(activity: Activity? = null) {
+        queryPermissions(syncActivity(activity))
+        if (!connected) {
+            now = -1L
+            sdk = FitBleKit.getInstance()
+            sdk.initSDK(this.activity)
+            scanner = BleScanner()
+            scanner.startScan(this)
         }
+    }
 
-        Log.e("CORE", "bl tar:${target.name}")
+    fun paint(
+        activity: Activity? = null,
+        onOff: Boolean,
+        lineChart: LineChart
+    ) {
+        syncActivity(activity)
+        if (onOff) {
+            chart = lineChart
+        } else {
+            chart = null
+        }
+    }
 
+    fun onRequestPermissionsResult(
+        activity: Activity? = null,
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        syncActivity(activity)
+        if (requestCode == permissions.hashCode()) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                Alerter.create(this.activity).setText("权限申请成功!").show()
+            } else {
+                Alerter.create(this.activity).setText("权限申请失败，或部分失败!").show()
+            }
+        }
+    }
+
+    override fun unFindDevice() {
+        if (!Alerter.isShowing) {
+            Alerter.create(this.activity).setText("未知触发unFindDevice").show()
+        }
+    }
+
+    override fun findDevice(p0: BluetoothBean?) {
+        p0?.bleDevice?.name ?: return
+        if (bleBeanSet.add(p0) && !Alerter.isShowing) {
+            Alerter.create(this.activity).setText("发现设备:${p0.bleDevice.name}").show()
+        }
+        if (now < 0) {
+            now = System.currentTimeMillis()
+        } else if (System.currentTimeMillis() > now + timeout * 1000) {
+            scanner.stopScan()
+            showScanResult()
+        }
+    }
+
+    fun showScanResult() {
+        if (bleBeanSet.isEmpty()) {
+            return
+        }
+        val alerter = Alerter.create(activity).setText("请选择连接的蓝牙设备")
+            .disableOutsideTouch()
+            .setDismissable(false)
+            .setDuration(60 * 1000)
+        bleBeanSet.forEach {
+            alerter.addButton(
+                it.bleDevice.name,//(${it.bleDevice.address})
+                R.style.AlertButton, View.OnClickListener { v ->
+                    Alerter.hide()
+                    baseDevice = BaseDevice()
+                    baseDevice.deviceType = it.deviceType
+                    baseDevice.macAddress = it.bleDevice.address
+                    baseDevice.name = it.bleDevice.name
+                    if (baseDevice.deviceType == null) {
+                        unKnownBound()
+                    } else {
+                        bound()
+                    }
+                })
+        }
+        alerter.show()
     }
 
 
+    fun unKnownBound() {
+        val alerter = Alerter.create(activity).setText("请选择连接的设备类型")
+            .disableOutsideTouch()
+            .setDismissable(false)
+            .setDuration(60 * 1000)
+        deviceTypes.forEach {
+            alerter.addButton(it.name, R.style.AlertButton, View.OnClickListener { v ->
+                Alerter.hide()
+                baseDevice.deviceType = it
+                bound()
+            })
+        }
+        alerter.show()
+    }
+
+    fun bound() {
+        when (baseDevice.deviceType) {
+            DeviceType.ArmBand -> {
+                manager = ArmBandManager.getInstance().apply {
+                    registerRealTimeDataListner(this@Core)
+                }
+            }
+            DeviceType.HRMonitor -> {
+                manager = HeartRateMonitorManager.getInstance().apply {
+                    setHeartRateListener(this@Core)
+                }
+            }
+        }
+        manager.apply {
+            registerCheckSystemBleCallback(this@Core)
+            registerStateChangeCallback(this@Core)
+            disconnect(false)
+            closeDevice()
+            refreshDeviceCache()
+            connectDevice(baseDevice)
+            blService = BluetoothLeService.getInstance(null)
+        }
+    }
+
+    override fun onRealTimeHeartRateData(p0: RTHeartRate?) {
+        heartRateHistory.put(p0?.utc ?: return, p0.heartRate)
+        repaint()
+    }
+
+    fun repaint() {
+        pool.execute {
+            if (!paintSemaphore.tryAcquire()) {
+                return@execute
+            }
+            try {
+                if (chart != null && heartRateHistory.isNotEmpty()) {
+                    var start = heartRateHistory.keyAt(0)
+                    var cnt = 0
+                    heartRateHistory.forEach { key, y ->
+                        val x = start - key
+                        val ent = Entry(x.toFloat(), y.toFloat())
+                        chart!!.apply {
+                            lineData.addEntry(ent, cnt++)
+                            setVisibleXRangeMaximum(max(x.toFloat(), chart!!.xChartMax))
+                            setVisibleYRangeMaximum(
+                                max(y.toFloat(), chart!!.yChartMax),
+                                YAxis.AxisDependency.LEFT
+                            )
+                        }
+                    }
+                }
+
+                val msg = StringBuilder()
+                if (!Alerter.isShowing) {
+                    var size: Int
+                    var time: Long
+                    if (heartRateHistory.isNotEmpty()) {
+                        size = heartRateHistory.size
+                        time = heartRateHistory.keyAt(size - 1)
+                        val hr = heartRateHistory[time] ?: -1
+                        if (hr > 0) {
+                            msg.append("心率$time:$hr\n")
+                        }
+                        heartRateHistory.clear()
+                    }
+
+                    if (stepHistory.isNotEmpty()) {
+                        size = stepHistory.size
+                        time = stepHistory.keyAt(size - 1)
+                        val step = stepHistory[time]
+                        if (step != null && step.stepFrequency > 0) {
+                            msg.append("计步器$time:${step.currentTotalSteps}\n")
+                        }
+                        stepHistory.clear()
+                    }
+
+                    if (battery >= 0) {
+                        msg.append("电池:${battery}\n")
+                    }
+
+                    if (msg.length <= 0) {
+                        msg.append("连接提示:未获得信息")
+                    }
+                    Alerter.create(activity).setText(msg.toString()).show()
+                }
+            } catch (e: Exception) {
+                Log.e(this.javaClass.simpleName, "repaint", e)
+            } finally {
+                paintSemaphore.release()
+            }
+        }
+    }
+
+    override fun onRealTimeStepFrequencyData(p0: StepFrequencyEntity?) {
+        stepHistory.put(System.currentTimeMillis(), p0 ?: return)
+        repaint()
+    }
+
+    override fun onGotBatteryLevel(p0: Int) {
+        battery = p0
+    }
+
+    override fun onBleSwitchedBySystem(p0: Boolean) {
+        if (!Alerter.isShowing) {
+            Alerter.create(this.activity).setText("未知触发onBleSwitchedBySystem $p0").show()
+        }
+    }
+
+    override fun onRequestSwitchOnBle() {
+        if (!Alerter.isShowing) {
+            Alerter.create(this.activity).setText("未知触发onRequestSwitchOnBle").show()
+        }
+    }
+
+    override fun onEnableWriteToDevice(p0: String?, p1: Boolean) {
+        if (!Alerter.isShowing) {
+            Alerter.create(this.activity).setText("未知触发onEnableWriteToDevice $p0 $p1").show()
+        }
+    }
+
+    override fun onStateChange(p0: String?, p1: Int) {
+        if (!Alerter.isShowing) {
+            Alerter.create(this.activity).setText("未知触发onStateChange $p0 $p1").show()
+        }
+    }
+
+    override fun onHeartRateValueChange(p0: MutableList<RTHeartRate>?) {
+        p0?.forEach {
+            heartRateHistory.put(it.utc, it.heartRate)
+        } ?: return
+        repaint()
+    }
+
+    override fun onRealTimeHeartRateValue(p0: RTHeartRate?) {
+        heartRateHistory.put(p0?.utc ?: return, p0.heartRate)
+        repaint()
+    }
+
+    fun quit() {
+        manager.disconnect(false)
+        manager.closeDevice()
+        heartRateHistory.clear()
+        stepHistory.clear()
+        bleBeanSet.clear()
+    }
 }
