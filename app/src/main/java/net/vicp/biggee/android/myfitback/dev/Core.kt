@@ -80,7 +80,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     val pool = Executors.newWorkStealingPool()
 
     fun syncActivity(activity: Activity?): Activity {
-        if (activity != null && (!this::activity.isInitialized || this.activity != activity)) {
+        if (activity != null && (!this::activity.isLateinit || this.activity != activity)) {
             this.activity = activity
         }
         return this.activity
