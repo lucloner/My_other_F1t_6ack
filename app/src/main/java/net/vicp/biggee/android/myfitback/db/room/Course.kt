@@ -6,7 +6,8 @@ import java.time.LocalDateTime
 
 @Entity
 data class Course(
-    @PrimaryKey val timeRange: ClosedRange<LocalDateTime>
+    @PrimaryKey val timeRange: ClosedRange<LocalDateTime>,
+    val createTime: LocalDateTime = LocalDateTime.now()
 ) {
     var userId = ""
     var teacherId = ""

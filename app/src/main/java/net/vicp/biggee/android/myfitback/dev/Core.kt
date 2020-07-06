@@ -208,10 +208,10 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             .disableOutsideTouch()
             .setDismissable(false)
             .setDuration(60 * 1000)
-        deviceTypes.forEach {
-            alerter.addButton(it.name, R.style.AlertButton, View.OnClickListener { v ->
+        deviceTypes.forEach { type ->
+            alerter.addButton(type.name, R.style.AlertButton, View.OnClickListener {
                 Alerter.hide()
-                baseDevice.deviceType = it
+                baseDevice.deviceType = type
                 bound()
             })
         }
@@ -229,6 +229,20 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
                 manager = HeartRateMonitorManager.getInstance().apply {
                     setHeartRateListener(this@Core)
                 }
+            }
+            DeviceType.BikeComputer -> {
+            }
+            DeviceType.Cadence -> {
+            }
+            DeviceType.HubConfig -> {
+            }
+            DeviceType.Jump -> {
+            }
+            DeviceType.KettleBell -> {
+            }
+            DeviceType.Scale -> {
+            }
+            DeviceType.Tracker -> {
             }
         }
         manager.apply {
