@@ -4,10 +4,17 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import java.time.LocalDateTime
 
 @Database(version = 1, entities = [HeartRate::class])
+@TypeConverters(Converter::class)
 abstract class RoomDatabaseHelper : RoomDatabase() {
     abstract fun data(): SQLCommands
+
+    fun getCourses(timeRange: ClosedRange<LocalDateTime>) {
+
+    }
 
     companion object {
         private lateinit var INSTANCE: RoomDatabaseHelper
