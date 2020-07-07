@@ -62,7 +62,7 @@ object Pool : ConcurrentHashMap<Int, Future<out Any>>(), ThreadFactory,
             return
         }
         try {
-            workSpace.addAll(workAround)
+            workAround.parallelStream().forEach { workSpace.offer(it) }
             while (workSpace.isNotEmpty()) {
                 val poll = workSpace.poll() ?: continue
                 put(poll.hashCode(), pool.submit(poll))

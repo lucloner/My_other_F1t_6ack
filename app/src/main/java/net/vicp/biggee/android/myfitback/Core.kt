@@ -46,7 +46,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     lateinit var scanner: BleScanner
     lateinit var manager: Manager
     lateinit var handler: Handler
-    val bleBeanSet = HashSet<BluetoothBean>()
+    val bleBeanSet = HashMap<String, BluetoothBean>()
     val timeout = 5
     var now = -1L
     var connected = false
@@ -75,10 +75,11 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     val sqlite by lazy { RoomDatabaseHelper.getInstance(activity) }
 
     fun syncActivity(activity: Activity?): Activity {
-        if (activity != null && (!this::activity.isLateinit || Core.activity != activity)) {
-            Core.activity = activity
+        activity ?: return this.activity
+        if (!this::activity.isInitialized || this.activity != activity) {
+            this.activity = activity
         }
-        return Core.activity
+        return this.activity
     }
 
     fun queryPermissions(activity: Activity? = null) {
@@ -120,13 +121,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         }
     }
 
-    fun paint(
-        activity: Activity? = null,
-        handler: Handler,
-        onOff: Boolean
-    ) {
-        syncActivity(activity)
-        Core.handler = handler
+    fun paint(onOff: Boolean) {
         monitor = onOff
         if (onOff) {
             Pool.workAround.add(this)
@@ -158,9 +153,10 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     override fun findDevice(p0: BluetoothBean?) {
-        p0?.bleDevice?.name ?: return
-        if (bleBeanSet.add(p0) && !Alerter.isShowing) {
-            Alerter.create(activity).setText("发现设备:${p0.bleDevice.name}").show()
+        val name = p0?.bleDevice?.name ?: return
+        if (!bleBeanSet.contains(name) && !Alerter.isShowing) {
+            bleBeanSet.put(name, p0)
+            Alerter.create(activity).setText("发现设备:$name").show()
         }
         if (now < 0) {
             now = System.currentTimeMillis()
@@ -178,10 +174,10 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             .disableOutsideTouch()
             .setDismissable(false)
             .setDuration(60 * 1000)
-        bleBeanSet.forEach {
+        bleBeanSet.values.forEach {
             alerter.addButton(
                 it.bleDevice.name,//(${it.bleDevice.address})
-                R.style.AlertButton, View.OnClickListener { v ->
+                R.style.AlertButton, View.OnClickListener { _ ->
                     Alerter.hide()
                     baseDevice = BaseDevice()
                     baseDevice.deviceType = it.deviceType
@@ -334,13 +330,15 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     override fun call(): Any {
+        //Log.i(this::class.simpleName,"===画图===$monitor===${heartRateHistory.size}")
+        heartRateChart ?: return 2
         while (heartRateHistory.isNotEmpty()) {
             if (!monitor) {
                 return 1
             }
-            heartRateChart?.addHeartRate(heartRateHistory.poll() ?: continue) ?: break
+            heartRateChart!!.addHeartRate(heartRateHistory.poll() ?: continue)
         }
-        heartRateChart?.repaint()
+        heartRateChart!!.repaint()
         return 0
     }
 }

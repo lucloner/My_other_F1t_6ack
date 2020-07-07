@@ -10,6 +10,7 @@ open class DrawLineChart(
     val lineChart: LineChart,
     val name: String = "DEFAULT${System.currentTimeMillis()}"
 ) {
+    val widthX = 60F
     init {
         lineChart.apply {
             data = (data ?: LineData()).apply {
@@ -25,8 +26,8 @@ open class DrawLineChart(
     fun repaint() {
         lineChart.apply {
             notifyDataSetChanged()
-            setVisibleXRangeMaximum(6F)
-            moveViewTo(data.entryCount - 7F, data.yMax, YAxis.AxisDependency.LEFT)
+            setVisibleXRangeMaximum(widthX)
+            moveViewTo(data.xMax - widthX, data.yMax, YAxis.AxisDependency.LEFT)
         }
     }
 }

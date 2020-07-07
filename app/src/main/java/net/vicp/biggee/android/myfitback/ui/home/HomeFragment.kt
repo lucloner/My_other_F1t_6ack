@@ -45,7 +45,7 @@ class HomeFragment : Fragment() {
 
         val tbtn_mon = root.findViewById<ToggleButton>(R.id.f_h_tbtn_mon).apply {
             setOnCheckedChangeListener { buttonView, isChecked ->
-                Core.paint(requireActivity(), handler, isChecked)
+                Core.paint(isChecked)
             }
         }
 

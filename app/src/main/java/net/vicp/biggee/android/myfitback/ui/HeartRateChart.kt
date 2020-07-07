@@ -1,16 +1,37 @@
 package net.vicp.biggee.android.myfitback.ui
 
+import com.github.mikephil.charting.animation.Easing
 import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.data.LineDataSet
+import net.vicp.biggee.android.myfitback.R
 import net.vicp.biggee.android.myfitback.db.room.HeartRate
-import java.util.concurrent.atomic.DoubleAdder
 
 class HeartRateChart(chart: LineChart) : DrawLineChart(chart) {
-    val x = DoubleAdder()
-    fun addHeartRate(heartRate: HeartRate) {
-        val painted = lineChart.data.entryCount
-        if (painted != 0) {
-            x.add(heartRate.utc.toDouble() / 1000)
+    init {
+        (chart.apply {
+            animateXY(2000, 2000, Easing.EaseInCubic)
+        }.data.apply {
+            isHighlightEnabled = true
+        }.dataSets.first() as LineDataSet).apply {
+            setDrawFilled(true)
+            fillDrawable = chart.context.getDrawable(R.drawable.fade_red)
+            mode = LineDataSet.Mode.CUBIC_BEZIER
+            setDrawCircles(false)
         }
-        addEntry(x.sum().toFloat(), heartRate.heartRate.toFloat())
+    }
+
+    var startX = -1.0
+    fun addHeartRate(heartRate: HeartRate) {
+        val utc = heartRate.utc.toDouble() / 1000
+        val hr = heartRate.heartRate
+        if (hr <= 0) {
+            return
+        }
+        if (startX < 0) {
+            startX = utc
+        }
+        val x = utc - startX
+        addEntry(x.toFloat(), hr.toFloat())
+        //Log.d(this::class.simpleName,"===测试x轴===$drawX===")
     }
 }
