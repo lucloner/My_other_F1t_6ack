@@ -11,9 +11,8 @@ import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
-import com.github.mikephil.charting.charts.LineChart
+import net.vicp.biggee.android.myfitback.Core
 import net.vicp.biggee.android.myfitback.R
-import net.vicp.biggee.android.myfitback.dev.Core
 import kotlin.system.exitProcess
 
 class HomeFragment : Fragment() {
@@ -33,7 +32,6 @@ class HomeFragment : Fragment() {
             textView.text = it
         })
 
-        Core.syncActivity(requireActivity())
         val btn_t1 = root.findViewById<Button>(R.id.f_h_btn_t1).apply {
             setOnClickListener {
                 Core.t1()
@@ -44,14 +42,10 @@ class HomeFragment : Fragment() {
                 Core.connect()
             }
         }
-        val lineChart = root.findViewById<LineChart>(R.id.f_h_chart).apply {
-            setOnChartValueSelectedListener(Core)
-            invalidate()
-        }
 
         val tbtn_mon = root.findViewById<ToggleButton>(R.id.f_h_tbtn_mon).apply {
             setOnCheckedChangeListener { buttonView, isChecked ->
-                Core.paint(requireActivity(), handler, isChecked, lineChart)
+                Core.paint(requireActivity(), handler, isChecked)
             }
         }
 

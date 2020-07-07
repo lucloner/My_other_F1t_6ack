@@ -8,7 +8,10 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import com.github.mikephil.charting.charts.LineChart
+import net.vicp.biggee.android.myfitback.Core
 import net.vicp.biggee.android.myfitback.R
+import net.vicp.biggee.android.myfitback.ui.HeartRateChart
 
 class GalleryFragment : Fragment() {
 
@@ -20,12 +23,18 @@ class GalleryFragment : Fragment() {
             savedInstanceState: Bundle?
     ): View? {
         galleryViewModel =
-                ViewModelProviders.of(this).get(GalleryViewModel::class.java)
+            ViewModelProviders.of(this).get(GalleryViewModel::class.java)
         val root = inflater.inflate(R.layout.fragment_gallery, container, false)
         val textView: TextView = root.findViewById(R.id.text_gallery)
         galleryViewModel.text.observe(viewLifecycleOwner, Observer {
             textView.text = it
         })
+
+        val lineChart = root.findViewById<LineChart>(R.id.f_h_chart).apply {
+            setOnChartValueSelectedListener(Core)
+            invalidate()
+            Core.heartRateChart = HeartRateChart(this)
+        }
         return root
     }
 }

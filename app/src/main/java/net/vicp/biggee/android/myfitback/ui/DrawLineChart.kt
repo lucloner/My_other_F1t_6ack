@@ -6,7 +6,7 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 
-class DrawLineChart(
+open class DrawLineChart(
     val lineChart: LineChart,
     val name: String = "DEFAULT${System.currentTimeMillis()}"
 ) {
