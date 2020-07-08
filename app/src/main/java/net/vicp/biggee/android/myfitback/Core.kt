@@ -75,6 +75,8 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     var battery = -1
     var monitor = false
     val sqlite by lazy { RoomDatabaseHelper.getInstance(activity) }
+    var dialogPlus: DialogPlus? = null
+    var dialogLayout: FlexboxLayout? = null
 
     fun syncActivity(activity: Activity?): Activity {
         activity ?: return this.activity
@@ -119,6 +121,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             sdk = FitBleKit.getInstance()
             sdk.initSDK(Core.activity)
             scanner = BleScanner()
+            bleBeanSet.clear()
             scanner.startScan(this)
         }
     }
@@ -173,15 +176,15 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             return
         }
 
-        val layout = FlexboxLayout(activity)
-        val dialogPlus = DialogPlus.newDialog(activity)
+        dialogLayout = FlexboxLayout(activity)
+        dialogPlus = DialogPlus.newDialog(activity)
             .apply {
                 isCancelable = false
             }
-            .setContentHolder(ViewHolder(layout))
+            .setContentHolder(ViewHolder(dialogLayout))
             .setGravity(Gravity.CENTER)
             .create()
-        layout.apply {
+        dialogLayout?.apply dialogLayout@{
             flexWrap = FlexWrap.WRAP
             addView(TextView(activity).apply {
                 text = "请选择检测到的设备:"
@@ -194,24 +197,21 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
                     setOnClickListener {
                         baseDevice = device
                         if (device.deviceType == null) {
-                            layout.removeAllViews()
-                            unKnownBound(dialogPlus, layout)
+                            this@dialogLayout.removeAllViews()
+                            unKnownBound()
                         } else {
-                            dialogPlus.dismiss()
+                            dialogPlus?.dismiss()
                             bound()
                         }
                     }
                 })
             }
         }
-        dialogPlus.show()
+        dialogPlus?.show()
     }
 
-    fun unKnownBound(
-        dialogPlus: DialogPlus,
-        layout: FlexboxLayout
-    ) {
-        layout.apply {
+    fun unKnownBound() {
+        dialogLayout?.apply {
             addView(TextView(activity).apply {
                 text = "请选择[${baseDevice.name}]类型:"
             })
@@ -219,7 +219,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
                 addView(Button(activity).apply {
                     text = it.name
                     setOnClickListener { _ ->
-                        dialogPlus.dismiss()
+                        dialogPlus?.dismiss()
                         baseDevice.deviceType = it
                         bound()
                     }
