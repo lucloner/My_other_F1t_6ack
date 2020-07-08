@@ -1,7 +1,7 @@
 package net.vicp.biggee.android.myfitback.ui.home
 
-import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,6 +18,7 @@ import kotlin.system.exitProcess
 class HomeFragment : Fragment() {
 
     private lateinit var homeViewModel: HomeViewModel
+    private lateinit var textView: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,13 +28,14 @@ class HomeFragment : Fragment() {
         homeViewModel =
             ViewModelProviders.of(this).get(HomeViewModel::class.java)
         val root = inflater.inflate(R.layout.fragment_home, container, false)
-        val textView: TextView = root.findViewById(R.id.text_home)
+        textView = root.findViewById(R.id.text_home)
         homeViewModel.text.observe(viewLifecycleOwner, Observer {
             textView.text = it
         })
 
         val btn_t1 = root.findViewById<Button>(R.id.f_h_btn_t1).apply {
             setOnClickListener {
+                textView.text = "主界面"
                 Core.t1()
             }
         }
@@ -49,15 +51,10 @@ class HomeFragment : Fragment() {
             }
         }
 
-        val bleServiceIntent = Intent(
-            activity,
-            Class.forName("com.onecoder.devicelib.base.control.manage.BluetoothLeService")
-        )
-
         val btn_quit = root.findViewById<Button>(R.id.f_h_btn_quit).apply {
             setOnClickListener {
                 Core.quit()
-                this@HomeFragment.requireActivity().stopService(bleServiceIntent)
+                Core.activity.stopService(Core.blServiceIntent)
                 exitProcess(0)
             }
         }
@@ -68,7 +65,11 @@ class HomeFragment : Fragment() {
             }
         }
 
-        requireActivity().startService(bleServiceIntent)
         return root
+    }
+
+    override fun onDetach() {
+        Log.d(this::class.simpleName, "onDetach!!!")
+        super.onDetach()
     }
 }

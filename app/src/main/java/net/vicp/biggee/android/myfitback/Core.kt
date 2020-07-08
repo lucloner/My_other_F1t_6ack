@@ -2,6 +2,7 @@ package net.vicp.biggee.android.myfitback
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.view.Gravity
@@ -77,6 +78,11 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     val sqlite by lazy { RoomDatabaseHelper.getInstance(activity) }
     var dialogPlus: DialogPlus? = null
     var dialogLayout: FlexboxLayout? = null
+    val blServiceIntent by lazy {
+        val i = Intent(activity, BluetoothLeService::class.java)
+        activity.startService(i)
+        return@lazy i
+    }
 
     fun syncActivity(activity: Activity?): Activity {
         activity ?: return this.activity
