@@ -10,10 +10,15 @@ import java.time.LocalDateTime
 data class Course(
     @PrimaryKey val timeRange: ClosedRange<LocalDateTime>,
     val createTime: LocalDateTime = LocalDateTime.now()
-) {
+) : ArrayList<HeartRate>() {
     var userId = ""
     var teacherId = ""
     var subject = ""
+
+    @Ignore
+    override var size: Int = 0
+        @Ignore
+        get() = super.size
 
     @Ignore
     @Transient
