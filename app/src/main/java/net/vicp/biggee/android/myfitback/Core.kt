@@ -5,12 +5,8 @@ import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.view.View
-import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.highlight.Highlight
-import com.github.mikephil.charting.listener.OnChartValueSelectedListener
 import com.onecoder.devicelib.FitBleKit
 import com.onecoder.devicelib.armband.api.ArmBandManager
 import com.onecoder.devicelib.armband.api.entity.StepFrequencyEntity
@@ -37,7 +33,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
-    DeviceStateChangeCallback, HeartRateListener, OnChartValueSelectedListener, Callable<Any> {
+    DeviceStateChangeCallback, HeartRateListener, Callable<Any> {
     lateinit var activity: Activity
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
@@ -319,14 +315,6 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         heartRateHistory.clear()
         stepHistory.clear()
         bleBeanSet.clear()
-    }
-
-    override fun onNothingSelected() {
-
-    }
-
-    override fun onValueSelected(e: Entry?, h: Highlight?) {
-        Toast.makeText(activity, e.toString(), Toast.LENGTH_SHORT).show()
     }
 
     override fun call(): Any {

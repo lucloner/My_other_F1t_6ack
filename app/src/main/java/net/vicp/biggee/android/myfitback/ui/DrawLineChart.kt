@@ -5,12 +5,14 @@ import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener
 
-open class DrawLineChart(
+abstract class DrawLineChart(
     val lineChart: LineChart,
     val name: String = "DEFAULT${System.currentTimeMillis()}"
-) {
+) : OnChartValueSelectedListener {
     val widthX = 60F
+
     init {
         lineChart.apply {
             data = (data ?: LineData()).apply {

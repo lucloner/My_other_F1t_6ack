@@ -31,9 +31,10 @@ class GalleryFragment : Fragment() {
         })
 
         val lineChart = root.findViewById<LineChart>(R.id.f_h_chart).apply {
-            setOnChartValueSelectedListener(Core)
+            val heartRateChart = HeartRateChart(this)
+            setOnChartValueSelectedListener(heartRateChart)
             invalidate()
-            Core.heartRateChart = HeartRateChart(this)
+            Core.heartRateChart = heartRateChart
         }
         return root
     }

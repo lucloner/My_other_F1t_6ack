@@ -1,8 +1,11 @@
 package net.vicp.biggee.android.myfitback.ui
 
+import android.widget.Toast
 import com.github.mikephil.charting.animation.Easing
 import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.highlight.Highlight
 import net.vicp.biggee.android.myfitback.R
 import net.vicp.biggee.android.myfitback.db.room.HeartRate
 
@@ -32,6 +35,13 @@ class HeartRateChart(chart: LineChart) : DrawLineChart(chart) {
         }
         val x = utc - startX
         addEntry(x.toFloat(), hr.toFloat())
-        //Log.d(this::class.simpleName,"===测试x轴===$drawX===")
+    }
+
+    override fun onNothingSelected() {
+
+    }
+
+    override fun onValueSelected(e: Entry?, h: Highlight?) {
+        Toast.makeText(lineChart.context, "时间(秒):${e?.x} 心率:${e?.y}", Toast.LENGTH_SHORT).show()
     }
 }

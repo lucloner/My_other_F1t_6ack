@@ -1,6 +1,7 @@
 package net.vicp.biggee.android.myfitback.db.room
 
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.onecoder.devicelib.base.protocol.entity.RTHeartRate
 import java.time.LocalDateTime
@@ -12,9 +13,15 @@ data class HeartRate(
     val mac: String,
     val createTime: LocalDateTime = LocalDateTime.now()
 ) {
+    @Ignore
+    @Transient
+    var rtHeartRate: RTHeartRate? = null
+
     constructor(rtHeartRate: RTHeartRate) : this(
         rtHeartRate.utc,
         rtHeartRate.heartRate,
         rtHeartRate.mac
-    )
+    ) {
+        this.rtHeartRate = rtHeartRate
+    }
 }
