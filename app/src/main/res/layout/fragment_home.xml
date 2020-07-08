@@ -10,58 +10,51 @@
         android:id="@+id/text_home"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
         android:textAlignment="center"
         android:textSize="20sp"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/f_h_btn_t1"
+    <com.google.android.flexbox.FlexboxLayout
+        android:id="@+id/flexbox_layout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="代码测试"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/text_home" />
+        app:flexWrap="wrap"
+        app:layout_constraintTop_toBottomOf="@+id/text_home">
 
-    <Button
-        android:id="@+id/f_h_btn_connect"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="蓝牙连接"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <Button
+            android:id="@+id/f_h_btn_t1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="代码测试" />
 
-    <Button
-        android:id="@+id/f_h_btn_quit"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="退出"
-        app:layout_constraintStart_toEndOf="@+id/f_h_tbtn_mon"
-        app:layout_constraintTop_toTopOf="parent" />
+        <Button
+            android:id="@+id/f_h_btn_connect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="蓝牙连接" />
 
-    <ToggleButton
-        android:id="@+id/f_h_tbtn_mon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textOff="监控已关闭"
-        android:textOn="监控已开启"
-        app:layout_constraintStart_toEndOf="@+id/f_h_btn_connect"
-        app:layout_constraintTop_toTopOf="parent" />
+        <Button
+            android:id="@+id/f_h_btn_quit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="退出" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="300dp"
-        android:layout_height="200dp"
-        app:layout_constraintBottom_toTopOf="@+id/text_home"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        <ToggleButton
+            android:id="@+id/f_h_tbtn_mon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textOff="监控已关闭"
+            android:textOn="监控已开启" />
+
+        <Button
+            android:id="@+id/f_h_btn_shot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="拍照" />
+    </com.google.android.flexbox.FlexboxLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

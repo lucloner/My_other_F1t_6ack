@@ -53,11 +53,18 @@ class HomeFragment : Fragment() {
             activity,
             Class.forName("com.onecoder.devicelib.base.control.manage.BluetoothLeService")
         )
+
         val btn_quit = root.findViewById<Button>(R.id.f_h_btn_quit).apply {
             setOnClickListener {
                 Core.quit()
                 this@HomeFragment.requireActivity().stopService(bleServiceIntent)
                 exitProcess(0)
+            }
+        }
+
+        val btn_shot = root.findViewById<Button>(R.id.f_h_btn_shot).apply {
+            setOnClickListener {
+                Core.shot()
             }
         }
 

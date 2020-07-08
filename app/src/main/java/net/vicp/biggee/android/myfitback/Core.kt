@@ -4,9 +4,13 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Handler
-import android.view.View
+import android.view.Gravity
+import android.widget.Button
+import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.android.flexbox.FlexWrap
+import com.google.android.flexbox.FlexboxLayout
 import com.onecoder.devicelib.FitBleKit
 import com.onecoder.devicelib.armband.api.ArmBandManager
 import com.onecoder.devicelib.armband.api.entity.StepFrequencyEntity
@@ -24,6 +28,8 @@ import com.onecoder.devicelib.base.entity.DeviceType
 import com.onecoder.devicelib.base.protocol.entity.RTHeartRate
 import com.onecoder.devicelib.heartrate.api.HeartRateMonitorManager
 import com.onecoder.devicelib.heartrate.api.interfaces.HeartRateListener
+import com.orhanobut.dialogplus.DialogPlus
+import com.orhanobut.dialogplus.ViewHolder
 import com.tapadoo.alerter.Alerter
 import net.vicp.biggee.android.myfitback.db.room.HeartRate
 import net.vicp.biggee.android.myfitback.db.room.RoomDatabaseHelper
@@ -48,13 +54,13 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     var connected = false
     val deviceTypes = arrayOf(
         DeviceType.ArmBand,
-        //DeviceType.BikeComputer,
-        //DeviceType.Cadence,
+        DeviceType.BikeComputer,
+        DeviceType.Cadence,
         DeviceType.HRMonitor,
-        //DeviceType.HubConfig,
-        //DeviceType.Jump,
-        //DeviceType.KettleBell,
-        //DeviceType.Scale,
+        DeviceType.HubConfig,
+        DeviceType.Jump,
+        DeviceType.KettleBell,
+        DeviceType.Scale,
         DeviceType.Tracker
     )
     val permissions = arrayOf(
@@ -166,42 +172,60 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         if (bleBeanSet.isEmpty()) {
             return
         }
-        val alerter = Alerter.create(activity).setText("请选择连接的蓝牙设备")
-            .disableOutsideTouch()
-            .setDismissable(false)
-            .setDuration(60 * 1000)
-        bleBeanSet.values.forEach {
-            alerter.addButton(
-                it.bleDevice.name,//(${it.bleDevice.address})
-                R.style.AlertButton, View.OnClickListener { _ ->
-                    Alerter.hide()
-                    baseDevice = BaseDevice()
-                    baseDevice.deviceType = it.deviceType
-                    baseDevice.macAddress = it.bleDevice.address
-                    baseDevice.name = it.bleDevice.name
-                    if (baseDevice.deviceType == null) {
-                        unKnownBound()
-                    } else {
+
+        val layout = FlexboxLayout(activity)
+        val dialogPlus = DialogPlus.newDialog(activity)
+            .apply {
+                isCancelable = false
+            }
+            .setContentHolder(ViewHolder(layout))
+            .setGravity(Gravity.CENTER)
+            .create()
+        layout.apply {
+            flexWrap = FlexWrap.WRAP
+            addView(TextView(activity).apply {
+                text = "请选择检测到的设备:"
+            })
+            bleBeanSet.values.forEach {
+                addView(Button(activity).apply {
+                    val device =
+                        BaseDevice(it.deviceType, it.bleDevice.name, it.bleDevice.address)
+                    text = device.name
+                    setOnClickListener {
+                        baseDevice = device
+                        if (device.deviceType == null) {
+                            layout.removeAllViews()
+                            unKnownBound(dialogPlus, layout)
+                        } else {
+                            dialogPlus.dismiss()
+                            bound()
+                        }
+                    }
+                })
+            }
+        }
+        dialogPlus.show()
+    }
+
+    fun unKnownBound(
+        dialogPlus: DialogPlus,
+        layout: FlexboxLayout
+    ) {
+        layout.apply {
+            addView(TextView(activity).apply {
+                text = "请选择[${baseDevice.name}]类型:"
+            })
+            deviceTypes.forEach {
+                addView(Button(activity).apply {
+                    text = it.name
+                    setOnClickListener { _ ->
+                        dialogPlus.dismiss()
+                        baseDevice.deviceType = it
                         bound()
                     }
                 })
+            }
         }
-        alerter.show()
-    }
-
-    fun unKnownBound() {
-        val alerter = Alerter.create(activity).setText("请选择连接的设备类型")
-            .disableOutsideTouch()
-            .setDismissable(false)
-            .setDuration(60 * 1000)
-        deviceTypes.forEach { type ->
-            alerter.addButton(type.name, R.style.AlertButton, View.OnClickListener {
-                Alerter.hide()
-                baseDevice.deviceType = type
-                bound()
-            })
-        }
-        alerter.show()
     }
 
     fun bound() {
@@ -328,5 +352,8 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         }
         heartRateChart!!.repaint()
         return 0
+    }
+
+    fun shot() {
     }
 }
