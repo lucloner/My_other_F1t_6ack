@@ -16,45 +16,49 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.flexbox.FlexboxLayout
-        android:id="@+id/flexbox_layout"
+    <ScrollView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:flexWrap="wrap"
         app:layout_constraintTop_toBottomOf="@+id/text_home">
 
-        <Button
-            android:id="@+id/f_h_btn_t1"
+        <com.google.android.flexbox.FlexboxLayout
+            android:id="@+id/flexbox_layout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="代码测试" />
+            app:flexWrap="wrap">
 
-        <Button
-            android:id="@+id/f_h_btn_connect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="蓝牙连接" />
+            <Button
+                android:id="@+id/f_h_btn_t1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="代码测试" />
 
-        <Button
-            android:id="@+id/f_h_btn_quit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="退出" />
+            <Button
+                android:id="@+id/f_h_btn_connect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="蓝牙连接" />
 
-        <ToggleButton
-            android:id="@+id/f_h_tbtn_mon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textOff="监控已关闭"
-            android:textOn="监控已开启" />
+            <Button
+                android:id="@+id/f_h_btn_quit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="退出" />
 
-        <Button
-            android:id="@+id/f_h_btn_shot"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="拍照" />
-    </com.google.android.flexbox.FlexboxLayout>
+            <ToggleButton
+                android:id="@+id/f_h_tbtn_mon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textOff="监控已关闭"
+                android:textOn="监控已开启" />
 
+            <Button
+                android:id="@+id/f_h_btn_shot"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="拍照" />
+        </com.google.android.flexbox.FlexboxLayout>
+    </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -2,14 +2,20 @@ package net.vicp.biggee.android.myfitback
 
 import android.Manifest
 import android.app.Activity
+import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.os.Build
+import android.os.Environment
 import android.os.Handler
+import android.provider.MediaStore
+import android.util.Log
 import android.view.Gravity
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayout
 import com.onecoder.devicelib.FitBleKit
@@ -36,11 +42,14 @@ import net.vicp.biggee.android.myfitback.db.room.HeartRate
 import net.vicp.biggee.android.myfitback.db.room.RoomDatabaseHelper
 import net.vicp.biggee.android.myfitback.exe.Pool
 import net.vicp.biggee.android.myfitback.ui.HeartRateChart
+import pub.devrel.easypermissions.EasyPermissions
+import java.io.File
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
-    DeviceStateChangeCallback, HeartRateListener, Callable<Any> {
+    DeviceStateChangeCallback, HeartRateListener, Callable<Any>,
+    EasyPermissions.PermissionCallbacks, EasyPermissions.RationaleCallbacks {
     lateinit var activity: Activity
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
@@ -69,7 +78,11 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         Manifest.permission.BLUETOOTH_ADMIN,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
-        Manifest.permission.FOREGROUND_SERVICE
+        Manifest.permission.CAMERA,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        Manifest.permission.READ_EXTERNAL_STORAGE,
+        Manifest.permission.INTERNET,
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) Manifest.permission.FOREGROUND_SERVICE else null
     )
     val heartRateHistory = ConcurrentLinkedQueue<HeartRate>()
     val stepHistory = ConcurrentLinkedQueue<StepFrequencyEntity>()
@@ -83,6 +96,10 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         activity.startService(i)
         return@lazy i
     }
+    val permissionGranted = HashSet<String>()
+    val permissionDenied = HashSet<String>()
+    val requestCodeBase by lazy { hashCode() and 128 }
+    lateinit var tmpFile: File
 
     fun syncActivity(activity: Activity?): Activity {
         activity ?: return this.activity
@@ -93,19 +110,13 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     fun queryPermissions(activity: Activity? = null) {
-        val queryPermissions = permissions.toMutableList().apply {
-            removeIf {
-                ContextCompat.checkSelfPermission(
-                    syncActivity(activity),
-                    it
-                ) == PackageManager.PERMISSION_GRANTED
-            }
-        }
-        if (queryPermissions.isNotEmpty()) {
-            ActivityCompat.requestPermissions(
-                Core.activity,
-                queryPermissions.toTypedArray(),
-                permissions.hashCode() and 255
+        syncActivity(activity)
+        if (!EasyPermissions.hasPermissions(this.activity, *permissions)) {
+            EasyPermissions.requestPermissions(
+                this.activity,
+                "需要获取您的权限",
+                requestCodeBase,
+                *permissions
             )
         }
     }
@@ -118,10 +129,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         ).setText("测试阶段2\n此处已无代码").show()
     }
 
-    fun connect(activity: Activity? = null) {
-        queryPermissions(
-            syncActivity(activity)
-        )
+    fun connect() {
         if (!connected) {
             now = -1L
             sdk = FitBleKit.getInstance()
@@ -138,22 +146,6 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             Pool.workAround.add(this)
         } else {
             Pool.workAround.remove(this)
-        }
-    }
-
-    fun onRequestPermissionsResult(
-        activity: Activity? = null,
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        syncActivity(activity)
-        if (requestCode == permissions.hashCode()) {
-            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                Alerter.create(Core.activity).setText("权限申请成功!").show()
-            } else {
-                Alerter.create(Core.activity).setText("权限申请失败，或部分失败!").show()
-            }
         }
     }
 
@@ -184,9 +176,6 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
 
         dialogLayout = FlexboxLayout(activity)
         dialogPlus = DialogPlus.newDialog(activity)
-            .apply {
-                isCancelable = false
-            }
             .setContentHolder(ViewHolder(dialogLayout))
             .setGravity(Gravity.CENTER)
             .create()
@@ -361,5 +350,141 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     fun shot() {
+        dialogLayout = FlexboxLayout(activity)
+        dialogPlus =
+            DialogPlus.newDialog(activity).setContentHolder(ViewHolder(dialogLayout)).create()
+        dialogLayout?.apply {
+            flexWrap = FlexWrap.WRAP
+            addView(TextView(activity).apply {
+                text = "请选择检测到的设备:"
+            })
+            addView(Button(activity).apply {
+                text = "相册"
+                setOnClickListener {
+                    dialogPlus?.dismiss()
+                    activity.startActivityForResult(Intent(Intent.ACTION_PICK).apply {
+                        type = "image/*"
+                    }, requestCodeBase + 1)
+                }
+            })
+            addView(Button(activity).apply {
+                text = "拍照"
+                setOnClickListener {
+                    dialogPlus?.dismiss()
+                    val fname = "IMG_${System.currentTimeMillis()}.jpg"
+                    tmpFile = File(fname)
+                    activity.startActivityForResult(
+                        Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                            putExtra(MediaStore.EXTRA_OUTPUT,
+                                activity.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                                    ContentValues().apply {
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                            Alerter.create(activity).setText("安卓版本Q以上").show()
+                                            put(
+                                                MediaStore.Images.Media.RELATIVE_PATH,
+                                                "DCIM/Pictures"
+                                            )
+                                        } else {
+                                            Alerter.create(activity).setText("安卓版本O以下").show()
+                                            tmpFile = File(
+                                                Environment.getExternalStorageDirectory(),
+                                                "Pictures"
+                                            ).apply { mkdirs() }
+                                            tmpFile = File(tmpFile, fname).apply {
+                                                delete()
+                                                deleteOnExit()
+                                            }
+                                            put(
+                                                MediaStore.Images.Media.DATA,
+                                                tmpFile.absolutePath
+                                            )
+                                        }
+                                        put(MediaStore.Images.Media.DISPLAY_NAME, fname)
+                                        put(MediaStore.Images.Media.MIME_TYPE, "image/JPEG")
+                                    }
+                                ))
+                        },
+                        requestCodeBase + 2
+                    )
+                }
+            })
+        }
+        dialogPlus?.show()
+    }
+
+    override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {
+        permissionDenied.addAll(perms)
+        Log.e(this::class.simpleName, "===拒绝权限===$requestCode===$permissionDenied")
+    }
+
+    override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) {
+        permissionGranted.addAll(perms)
+        Log.e(this::class.simpleName, "===拒绝权限===$requestCode===$permissionGranted")
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        Alerter.create(activity).setText("请求权限成功:$permissionGranted\n失败:$permissionDenied").show()
+    }
+
+    override fun onRationaleDenied(requestCode: Int) {
+
+    }
+
+    override fun onRationaleAccepted(requestCode: Int) {
+
+    }
+
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (resultCode != Activity.RESULT_OK) {
+            return
+        }
+        try {
+            var bitmap: Bitmap? = null
+            when (requestCode) {
+                requestCodeBase + 1 -> {    //相册
+                    bitmap = BitmapFactory.decodeStream(
+                        activity.contentResolver.openInputStream(data!!.data!!)
+                    )
+                }
+                requestCodeBase + 2 -> {    //拍照
+                    val cursor = activity.contentResolver.query(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        arrayOf(MediaStore.Images.Media._ID),
+                        MediaStore.Images.Media.DISPLAY_NAME + "=? ",
+                        arrayOf(tmpFile.name), null
+                    )
+
+                    bitmap =
+                        BitmapFactory.decodeStream(
+                            activity.contentResolver.openInputStream(
+                                ContentUris.withAppendedId(
+                                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                                    cursor!!.apply { moveToFirst() }.getLong(0)
+                                ).apply {
+                                    Log.e(this::class.simpleName, "返回错误2:$this")
+                                }
+                            )
+                        )
+                    cursor.close()
+                }
+            }
+            if (bitmap != null) {
+                activity.findViewById<FlexboxLayout>(R.id.flexbox_layout)
+                    .addView(ImageView(activity).apply {
+                        adjustViewBounds = true
+                        maxHeight = 300
+                        //maxWidth = 300
+                        setImageBitmap(bitmap)
+                    })
+            }
+        } catch (e: Exception) {
+            Log.e(this::class.simpleName, "返回错误:", e)
+            Alerter.create(activity)
+                .setText("错误:${e.localizedMessage}\t${e.stackTrace.contentToString()}").show()
+        }
     }
 }

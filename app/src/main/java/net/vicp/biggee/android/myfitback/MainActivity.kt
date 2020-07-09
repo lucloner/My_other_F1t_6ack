@@ -1,5 +1,6 @@
 package net.vicp.biggee.android.myfitback
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import androidx.appcompat.app.AppCompatActivity
@@ -13,6 +14,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
+import pub.devrel.easypermissions.EasyPermissions
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,8 +24,14 @@ class MainActivity : AppCompatActivity() {
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        Core.onRequestPermissionsResult(this, requestCode, permissions, grantResults)
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        EasyPermissions.onRequestPermissionsResult(
+            requestCode,
+            permissions,
+            grantResults,
+            this,
+            Core
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +58,7 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
-        Core.syncActivity(this)
+        Core.queryPermissions(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -62,5 +70,10 @@ class MainActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         val navController = findNavController(R.id.nav_host_fragment)
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        Core.onActivityResult(requestCode, resultCode, data)
     }
 }
