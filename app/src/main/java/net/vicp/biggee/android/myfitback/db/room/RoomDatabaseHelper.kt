@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import net.vicp.biggee.android.myfitback.exe.Pool
 
-@Database(version = 1, entities = [HeartRate::class, Course::class])
+@Database(version = 1, entities = [HeartRate::class, Course::class, Member::class])
 @TypeConverters(Converter::class)
 abstract class RoomDatabaseHelper : RoomDatabase() {
     abstract fun data(): SQLCommands

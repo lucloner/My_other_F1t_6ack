@@ -2,6 +2,8 @@ package net.vicp.biggee.android.myfitback.db.room
 
 import androidx.room.TypeConverter
 import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -34,6 +36,19 @@ open class Converter {
     fun dbToListTimeRange(listTimeRange: List<String>): List<ClosedRange<LocalDateTime>> =
         ArrayList(listTimeRange).parallelStream().map(this::dbToTimeRange)
             .collect(Collectors.toList())
+
+    @TypeConverter
+    fun jsonToDb(jsonObject: JsonObject): String = jsonObject.toString()
+
+    @TypeConverter
+    fun dbToJson(json: String): JsonObject {
+        try {
+            return JsonParser.parseString(json).asJsonObject
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return JsonObject()
+    }
 
     @TypeConverter
     fun object2Gson(any: Any?) = Gson().toJson(any ?: "")

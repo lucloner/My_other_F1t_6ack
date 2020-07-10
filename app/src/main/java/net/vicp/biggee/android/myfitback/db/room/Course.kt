@@ -14,11 +14,15 @@ data class Course(
     var userId = ""
     var teacherId = ""
     var subject = ""
+    var details = ""
 
     @Ignore
     override var size: Int = 0
         @Ignore
-        get() = super.size
+        get() {
+            field = super.size
+            return field
+        }
 
     @Ignore
     @Transient

@@ -52,4 +52,25 @@ interface SQLCommands {
 
     @Query("SELECT * FROM Course WHERE timeRange+userId+teacherId like '%'+:string+'%'")
     fun readCourse(string: String): List<Course>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun addMember(vararg member: Member)
+
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    fun updateMember(member: Member): Int
+
+    @Delete
+    fun deleteMember(member: Member): Int
+
+    @Query("SELECT * FROM Member")
+    fun readAllMember(): List<Member>
+
+    @Query("SELECT * FROM Member WHERE uid=:uid ORDER BY createTime DESC LIMIT 1")
+    fun readMember(uid: String): Member
+
+    @Query("SELECT * FROM Member WHERE name=:name")
+    fun readMemberByName(name: String): List<Member>
+
+    @Query("SELECT * FROM Member WHERE role=:role")
+    fun readMemberByRole(role: String): List<Member>
 }
