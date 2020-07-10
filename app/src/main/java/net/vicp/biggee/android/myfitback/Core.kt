@@ -2,9 +2,7 @@ package net.vicp.biggee.android.myfitback
 
 import android.Manifest
 import android.app.Activity
-import android.content.ContentUris
-import android.content.ContentValues
-import android.content.Intent
+import android.content.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
@@ -18,6 +16,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayout
+import com.google.gson.Gson
 import com.onecoder.devicelib.FitBleKit
 import com.onecoder.devicelib.armband.api.ArmBandManager
 import com.onecoder.devicelib.armband.api.entity.StepFrequencyEntity
@@ -38,6 +37,12 @@ import com.onecoder.devicelib.heartrate.api.interfaces.HeartRateListener
 import com.orhanobut.dialogplus.DialogPlus
 import com.orhanobut.dialogplus.ViewHolder
 import com.tapadoo.alerter.Alerter
+import com.tencent.mm.opensdk.constants.ConstantsAPI
+import com.tencent.mm.opensdk.modelbase.BaseReq
+import com.tencent.mm.opensdk.modelbase.BaseResp
+import com.tencent.mm.opensdk.modelmsg.SendAuth
+import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler
+import com.tencent.mm.opensdk.openapi.WXAPIFactory
 import net.vicp.biggee.android.myfitback.db.room.HeartRate
 import net.vicp.biggee.android.myfitback.db.room.RoomDatabaseHelper
 import net.vicp.biggee.android.myfitback.exe.Pool
@@ -49,7 +54,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     DeviceStateChangeCallback, HeartRateListener, Callable<Any>,
-    EasyPermissions.PermissionCallbacks, EasyPermissions.RationaleCallbacks {
+    EasyPermissions.PermissionCallbacks, EasyPermissions.RationaleCallbacks, BroadcastReceiver(),
+    IWXAPIEventHandler {
     lateinit var activity: Activity
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
@@ -82,6 +88,9 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.READ_EXTERNAL_STORAGE,
         Manifest.permission.INTERNET,
+        Manifest.permission.ACCESS_WIFI_STATE,
+        Manifest.permission.READ_PHONE_STATE,
+        Manifest.permission.ACCESS_NETWORK_STATE,
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) Manifest.permission.FOREGROUND_SERVICE else null
     )
     val heartRateHistory = ConcurrentLinkedQueue<HeartRate>()
@@ -100,6 +109,21 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     val permissionDenied = HashSet<String>()
     val requestCodeBase by lazy { hashCode() and 128 }
     lateinit var tmpFile: File
+
+    // APP_ID 替换为你的应用从官方网站申请到的合法appID
+    const val APP_ID = "wx5cfc47c7c05b8d97"
+    const val ACCESS_TOKEN =
+        "https://api.weixin.qq.com/sns/oauth2/access_token?appid=$APP_ID&secret={1}&code={2}&grant_type=authorization_code"
+
+    // IWXAPI 是第三方app和微信通信的openApi接口
+    // 通过WXAPIFactory工厂，获取IWXAPI的实例
+    val api by lazy { WXAPIFactory.createWXAPI(activity, APP_ID, true) }
+    fun regToWx() {
+        // 将应用的appId注册到微信
+        api.registerApp(APP_ID)
+        //建议动态监听微信启动广播进行注册到微信
+        activity.registerReceiver(this, IntentFilter(ConstantsAPI.ACTION_REFRESH_WXAPP))
+    }
 
     fun syncActivity(activity: Activity?): Activity {
         activity ?: return this.activity
@@ -486,5 +510,26 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             Alerter.create(activity)
                 .setText("错误:${e.localizedMessage}\t${e.stackTrace.contentToString()}").show()
         }
+    }
+
+    fun wxLogin() {
+        api.handleIntent(activity.intent, this)
+        //regToWx()
+        api.sendReq(SendAuth.Req().apply {
+            scope = "snsapi_userinfo"
+            state = "${activity.packageName}${requestCodeBase - 1}"
+        })
+    }
+
+    override fun onReceive(context: Context?, intent: Intent?) {
+        api.registerApp(APP_ID)
+    }
+
+    override fun onResp(p0: BaseResp?) {
+        Log.d(this::class.simpleName, "获得WX返回:" + Gson().toJson(p0))
+    }
+
+    override fun onReq(p0: BaseReq?) {
+        Log.d(this::class.simpleName, "发送WX请求:" + Gson().toJson(p0))
     }
 }

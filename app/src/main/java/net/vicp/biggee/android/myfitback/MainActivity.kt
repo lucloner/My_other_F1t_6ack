@@ -76,4 +76,5 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         Core.onActivityResult(requestCode, resultCode, data)
     }
+
 }

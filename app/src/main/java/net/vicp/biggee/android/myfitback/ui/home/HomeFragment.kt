@@ -65,6 +65,12 @@ class HomeFragment : Fragment() {
             }
         }
 
+        val btn_wx_login = root.findViewById<Button>(R.id.f_h_btn_wxTest).apply {
+            setOnClickListener {
+                Core.wxLogin()
+            }
+        }
+
         return root
     }
 
