@@ -22,7 +22,7 @@ data class HeartRate(
     var gender = "male"    //or "female"
 
     @Ignore
-    var weight = 125       //kg
+    var weight = 125F       //kg
 
     @Ignore
     var age = 40
@@ -59,6 +59,14 @@ data class HeartRate(
         rtHeartRate.mac
     ) {
         this.rtHeartRate = rtHeartRate
+    }
+
+    fun bind(member: Member) {
+        member.also {
+            gender = it.gender
+            weight = it.weight
+            age = it.age
+        }
     }
 
     companion object {

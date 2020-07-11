@@ -35,23 +35,23 @@ interface SQLCommands {
     @Query("SELECT * FROM Course")
     fun readAllCourses(): List<Course>
 
-    @Query("SELECT * FROM Course WHERE timeRange=:timeRange")
-    fun readCourse(timeRange: ClosedRange<LocalDateTime>): List<Course>
+    @Query("SELECT * FROM Course WHERE startTime=:startTime AND duration=:duration")
+    fun readCourse(startTime: LocalDateTime, duration: Long = -1L): List<Course>
 
-    @Query("SELECT * FROM Course WHERE timeRange=:timeRange AND userId=:id OR teacherId=:id ORDER BY createTime DESC")
-    fun readCourse(timeRange: ClosedRange<LocalDateTime>, id: String): List<Course>
+    @Query("SELECT * FROM Course WHERE createTime>:createTime ORDER BY createTime DESC LIMIT 1")
+    fun readCourse(createTime: LocalDateTime): Course
 
-    @Query("SELECT timeRange FROM Course GROUP BY timeRange ORDER BY createTime DESC")
-    fun readCourseTable(): List<String>
+    @Query("SELECT * FROM Course GROUP BY startTime,duration ORDER BY createTime DESC")
+    fun readCourseTable(): List<Course>
 
-    @Query("SELECT teacherId FROM Course GROUP BY teacherId ORDER BY createTime DESC")
-    fun readCourseTeachers(): List<String>
+    @Query("SELECT * FROM Course GROUP BY teacherId ORDER BY createTime DESC")
+    fun readCourseTeachers(): List<Course>
 
-    @Query("SELECT userId FROM Course GROUP BY userId ORDER BY createTime DESC")
-    fun readCourseUsers(): List<String>
+    @Query("SELECT * FROM Course GROUP BY userId ORDER BY createTime DESC")
+    fun readCourseUsers(): List<Course>
 
-    @Query("SELECT * FROM Course WHERE timeRange+userId+teacherId like '%'+:string+'%'")
-    fun readCourse(string: String): List<Course>
+    @Query("SELECT * FROM Course WHERE userId=:memberId OR teacherId=:memberId ORDER BY createTime DESC")
+    fun readCourse(memberId: String): List<Course>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun addMember(vararg member: Member)

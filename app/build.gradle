@@ -85,4 +85,5 @@ dependencies {
     implementation 'com.github.pdog18:dimension-extensions:1.0'
     api 'com.tencent.mm.opensdk:wechat-sdk-android-without-mta:6.6.4'
     api 'com.tencent.tbs.tbssdk:sdk:43903'
+    implementation "com.github.skydoves:expandablelayout:1.0.5"
 }

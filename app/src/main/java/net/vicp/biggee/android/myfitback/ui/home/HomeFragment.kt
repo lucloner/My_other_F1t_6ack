@@ -71,6 +71,12 @@ class HomeFragment : Fragment() {
             }
         }
 
+        val btn_course = root.findViewById<Button>(R.id.f_h_btn_course).apply {
+            setOnClickListener {
+                Core.startCourse()
+            }
+        }
+
         return root
     }
 

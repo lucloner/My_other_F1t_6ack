@@ -2,13 +2,12 @@ package net.vicp.biggee.android.myfitback.db.room
 
 import androidx.room.Entity
 import androidx.room.Ignore
-import androidx.room.PrimaryKey
 import java.time.Duration
 import java.time.LocalDateTime
 
-@Entity
+@Entity(primaryKeys = arrayOf("startTime", "duration"))
 data class Course(
-    @PrimaryKey val timeRange: ClosedRange<LocalDateTime>,
+    val startTime: LocalDateTime,
     val createTime: LocalDateTime = LocalDateTime.now()
 ) : ArrayList<HeartRate>() {
     var userId = ""
@@ -24,13 +23,21 @@ data class Course(
             return field
         }
 
-    @Ignore
-    @Transient
-    var duration = Duration.between(timeRange.start, timeRange.endInclusive)
+    var duration = -1L
 
-    constructor(startTime: LocalDateTime, duration: Duration) : this(
-        startTime..startTime.plus(
-            duration
-        )
-    )
+    constructor(courseRange: ClosedRange<LocalDateTime>) : this(courseRange.start) {
+        duration = Duration.between(courseRange.start, courseRange.endInclusive).toMillis()
+    }
+
+    fun setMember(member: Member? = null, teacher: Member? = null) {
+        userId = member?.uid ?: ""
+        teacherId = teacher?.uid ?: ""
+        Course.member = member
+        Course.teacher = teacher
+    }
+
+    companion object {
+        var teacher: Member? = null
+        var member: Member? = null
+    }
 }

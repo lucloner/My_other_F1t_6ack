@@ -21,6 +21,12 @@ class HeartRateChart(chart: LineChart) : DrawLineChart(chart) {
             mode = LineDataSet.Mode.CUBIC_BEZIER
             setDrawCircles(false)
         }
+        chart.data.addDataSet(LineDataSet(null, "热量").apply {
+            setDrawCircles(false)
+            mode = LineDataSet.Mode.STEPPED
+            setDrawFilled(true)
+            fillDrawable = chart.context.getDrawable(R.drawable.fade_gold)
+        })
     }
 
     var startX = -1.0
@@ -35,6 +41,7 @@ class HeartRateChart(chart: LineChart) : DrawLineChart(chart) {
         }
         val x = utc - startX
         addEntry(x.toFloat(), hr.toFloat())
+        addEntry(x.toFloat(), heartRate.burn.toFloat(), 1)
     }
 
     override fun onNothingSelected() {

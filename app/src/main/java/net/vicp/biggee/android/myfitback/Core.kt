@@ -13,14 +13,17 @@ import android.util.Log
 import android.view.Gravity
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.NumberPicker
 import android.widget.TextView
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayout
 import com.google.gson.Gson
 import com.onecoder.devicelib.FitBleKit
 import com.onecoder.devicelib.armband.api.ArmBandManager
+import com.onecoder.devicelib.armband.api.entity.HistoryDataEntity
 import com.onecoder.devicelib.armband.api.entity.StepFrequencyEntity
 import com.onecoder.devicelib.armband.api.interfaces.RealTimeDataListener
+import com.onecoder.devicelib.armband.api.interfaces.SynchHistoryDataCallBack
 import com.onecoder.devicelib.base.api.Manager
 import com.onecoder.devicelib.base.control.entity.BleDevice
 import com.onecoder.devicelib.base.control.entity.BluetoothBean
@@ -43,7 +46,9 @@ import com.tencent.mm.opensdk.modelbase.BaseResp
 import com.tencent.mm.opensdk.modelmsg.SendAuth
 import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler
 import com.tencent.mm.opensdk.openapi.WXAPIFactory
+import net.vicp.biggee.android.myfitback.db.room.Course
 import net.vicp.biggee.android.myfitback.db.room.HeartRate
+import net.vicp.biggee.android.myfitback.db.room.Member
 import net.vicp.biggee.android.myfitback.db.room.RoomDatabaseHelper
 import net.vicp.biggee.android.myfitback.exe.Pool
 import net.vicp.biggee.android.myfitback.ui.HeartRateChart
@@ -55,7 +60,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     DeviceStateChangeCallback, HeartRateListener, Callable<Any>,
     EasyPermissions.PermissionCallbacks, EasyPermissions.RationaleCallbacks, BroadcastReceiver(),
-    IWXAPIEventHandler {
+    IWXAPIEventHandler, SynchHistoryDataCallBack {
     lateinit var activity: Activity
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
@@ -118,6 +123,12 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     // IWXAPI 是第三方app和微信通信的openApi接口
     // 通过WXAPIFactory工厂，获取IWXAPI的实例
     val api by lazy { WXAPIFactory.createWXAPI(activity, APP_ID, true) }
+    val memberList = LinkedHashSet<Member>().apply {
+        add(Member.sampleMale)
+        add(Member.sampleFemale)
+    }
+    val courseList = LinkedHashSet<Course>()
+
     fun regToWx() {
         // 将应用的appId注册到微信
         api.registerApp(APP_ID)
@@ -157,7 +168,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         if (!connected) {
             now = -1L
             sdk = FitBleKit.getInstance()
-            sdk.initSDK(Core.activity)
+            sdk.initSDK(activity)
             scanner = BleScanner()
             bleBeanSet.clear()
             scanner.startScan(this)
@@ -252,6 +263,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             DeviceType.ArmBand -> {
                 manager = ArmBandManager.getInstance().apply {
                     registerRealTimeDataListner(this@Core)
+
                 }
             }
             DeviceType.HRMonitor -> {
@@ -276,6 +288,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             null -> {
             }
         }
+
         manager.apply {
             registerCheckSystemBleCallback(this@Core)
             registerStateChangeCallback(this@Core)
@@ -323,12 +336,24 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             when (p1) {
                 BleDevice.STATE_CONNECTED -> {
                     msg = "已连接"
+                    if (baseDevice.deviceType == DeviceType.ArmBand) {
+                        (manager as ArmBandManager).apply {
+                            if (needSysBlePaired == true) {
+                                pair("123456")
+                                confirmPassword()
+                            }
+                            synchHistoryData(this@Core)
+                            Log.e(this::class.simpleName, "手环协议类型:$protocolType")
+                        }
+                    }
                 }
                 BleDevice.STATE_CONNECTING -> {
                     msg = "正在连接"
+                    connected = true
                 }
                 BleDevice.STATE_DISCONNECTED -> {
                     msg = "连接断开"
+                    connected = false
                 }
                 BleDevice.STATE_SCANING -> {
                     msg = "正在扫描"
@@ -367,9 +392,9 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             if (!monitor) {
                 return 1
             }
-            heartRateChart!!.addHeartRate(heartRateHistory.poll() ?: continue)
+            heartRateChart?.addHeartRate(heartRateHistory.poll() ?: continue)
         }
-        heartRateChart!!.repaint()
+        heartRateChart?.repaint()
         return 0
     }
 
@@ -531,5 +556,63 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
 
     override fun onReq(p0: BaseReq?) {
         Log.d(this::class.simpleName, "发送WX请求:" + Gson().toJson(p0))
+    }
+
+    override fun onSynchStateChange(p0: Int) {
+
+    }
+
+    override fun onSynchAllHistoryData(p0: HistoryDataEntity?) {
+        Alerter.create(activity).setText(Gson().toJson(p0)).show()
+    }
+
+    fun startCourse(connect: Boolean = connected) {
+//        if(!connect) {
+//            Alerter.create(activity)
+//                .setText("还未连接蓝牙！")
+//                .addButton("连接",onClick = View.OnClickListener {
+//                    Alerter.hide()
+//                    Pool.addJob(Runnable {
+//                        while (Alerter.isShowing){
+//                            Thread.sleep(1000)
+//                        }
+//                        connect()
+//                        paint(true)
+//                    })
+//
+//                })
+//                .addButton("离线模式",onClick = View.OnClickListener {
+//                    startCourse(true)
+//                    paint(true)
+//                })
+//                .addButton("取消",onClick = View.OnClickListener {
+//                    return@OnClickListener
+//                })
+//                .show()
+//            connect()
+//        }
+        dialogPlus = DialogPlus.newDialog(activity)
+            .setContentHolder(ViewHolder(R.layout.dialogue_course))
+            .setGravity(Gravity.CENTER)
+            .create().apply {
+//                memberList.forEach {
+//                    (findViewById(R.id.d_c_flex_member) as FlexboxLayout).addView(TextView(activity).apply {
+//                        text = it.name
+//                    })
+//                }
+                (findViewById(R.id.hourpicker) as NumberPicker).apply {
+                    minValue = 0
+                    maxValue = 12
+                }
+                (findViewById(R.id.minuteicker) as NumberPicker).apply {
+                    minValue = 0
+                    maxValue = 60
+                }
+                (findViewById(R.id.secondicker) as NumberPicker).apply {
+                    minValue = 0
+                    maxValue = 60
+                }
+                show()
+            }
     }
 }

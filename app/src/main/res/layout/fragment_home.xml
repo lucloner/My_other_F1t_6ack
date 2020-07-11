@@ -65,6 +65,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="微信登录" />
+
+            <Button
+                android:id="@+id/f_h_btn_course"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="开始课程" />
         </com.google.android.flexbox.FlexboxLayout>
     </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>
