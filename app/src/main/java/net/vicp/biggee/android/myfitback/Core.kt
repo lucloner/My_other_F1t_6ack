@@ -15,6 +15,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.NumberPicker
 import android.widget.TextView
+import androidx.core.view.children
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayout
 import com.google.gson.Gson
@@ -39,6 +40,7 @@ import com.onecoder.devicelib.heartrate.api.HeartRateMonitorManager
 import com.onecoder.devicelib.heartrate.api.interfaces.HeartRateListener
 import com.orhanobut.dialogplus.DialogPlus
 import com.orhanobut.dialogplus.ViewHolder
+import com.pdog.dimension.dp
 import com.tapadoo.alerter.Alerter
 import com.tencent.mm.opensdk.constants.ConstantsAPI
 import com.tencent.mm.opensdk.modelbase.BaseReq
@@ -56,6 +58,7 @@ import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.random.Random
 
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     DeviceStateChangeCallback, HeartRateListener, Callable<Any>,
@@ -128,6 +131,9 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         add(Member.sampleFemale)
     }
     val courseList = LinkedHashSet<Course>()
+    lateinit var member: Member
+    lateinit var course: Course
+    var subject: Course? = null
 
     fun regToWx() {
         // 将应用的appId注册到微信
@@ -591,15 +597,33 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
 //                .show()
 //            connect()
 //        }
+
         dialogPlus = DialogPlus.newDialog(activity)
             .setContentHolder(ViewHolder(R.layout.dialogue_course))
             .setGravity(Gravity.CENTER)
             .create().apply {
-//                memberList.forEach {
-//                    (findViewById(R.id.d_c_flex_member) as FlexboxLayout).addView(TextView(activity).apply {
-//                        text = it.name
-//                    })
-//                }
+                val dialogSelected = findViewById(R.id.d_c_tv_title2) as TextView
+                (findViewById(R.id.d_c_fb_member) as FlexboxLayout).apply {
+                    val rnd = Random(requestCodeBase)
+                    memberList.forEach {
+                        addView(TextView(activity).apply {
+                            text = it.name
+                            setOnClickListener { _ ->
+                                dialogSelected.text = it.name
+                                member = it
+                            }
+                        })
+                    }
+                    children.forEach {
+                        if (it is TextView) {
+                            it.apply {
+                                it.setBackgroundColor(rnd.nextInt())
+                                it.textSize = 5F.dp
+                            }
+                        }
+                    }
+                }
+
                 (findViewById(R.id.hourpicker) as NumberPicker).apply {
                     minValue = 0
                     maxValue = 12

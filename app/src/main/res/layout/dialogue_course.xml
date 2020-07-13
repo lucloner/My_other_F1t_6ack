@@ -1,35 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/d_c_constraintlayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.skydoves.expandablelayout.ExpandableLayout
-        android:id="@+id/d_c_ext_member"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        app:expandable_isExpanded="true"
+    <TextView
+        android:id="@+id/d_c_tv_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="开始课程"
+        android:textSize="20dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent" />
 
-        <com.google.android.flexbox.FlexboxLayout
-            android:id="@+id/d_c_flex_member"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:flexWrap="wrap">
+    <TextView
+        android:id="@+id/d_c_tv_title1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="请选择学员:"
+        android:textSize="20dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/d_c_tv_title" />
 
-        </com.google.android.flexbox.FlexboxLayout>
-    </com.skydoves.expandablelayout.ExpandableLayout>
+    <TextView
+        android:id="@+id/d_c_tv_title2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="未选择"
+        android:textSize="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/d_c_tv_title1"
+        app:layout_constraintTop_toBottomOf="@+id/d_c_tv_title" />
+
+    <com.google.android.flexbox.FlexboxLayout
+        android:id="@+id/d_c_fb_member"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:dividerDrawable="@drawable/divider"
+        app:layout_constraintTop_toBottomOf="@+id/d_c_tv_title2"
+        app:showDivider="middle"></com.google.android.flexbox.FlexboxLayout>
 
     <TextView
         android:id="@+id/d_c_tv_time"
         android:layout_width="wrap_content"
-        android:layout_height="20dp"
+        android:layout_height="wrap_content"
         android:text="训练时间："
+        android:textSize="20dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/d_c_ext_member" />
+        app:layout_constraintTop_toBottomOf="@+id/d_c_fb_member" />
 
     <LinearLayout
         android:id="@+id/d_c_linearLayout"
