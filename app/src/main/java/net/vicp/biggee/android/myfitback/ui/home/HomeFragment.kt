@@ -9,29 +9,39 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
+import com.google.android.flexbox.FlexboxLayout
 import net.vicp.biggee.android.myfitback.Core
 import net.vicp.biggee.android.myfitback.R
 import kotlin.system.exitProcess
 
 class HomeFragment : Fragment() {
-
-    private lateinit var homeViewModel: HomeViewModel
     private lateinit var textView: TextView
+    private lateinit var fbLayout: FlexboxLayout
+    private lateinit var tbtn_mon: ToggleButton
+    private var homeViewModel: HomeViewModel? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        homeViewModel =
-            ViewModelProviders.of(this).get(HomeViewModel::class.java)
+        Core.apply {
+            if (boundCoreService) {
+                homeViewModel = coreService.CoreViewModel().getHomeViewMode()
+            }
+            if (homeViewModel == null) {
+                homeViewModel =
+                    ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application)
+                        .create(HomeViewModel::class.java)
+            }
+        }
+        Log.d(this::class.simpleName, "读取保存视图:${homeViewModel?.text?.value}")
+
         val root = inflater.inflate(R.layout.fragment_home, container, false)
-        textView = root.findViewById(R.id.text_home)
-        homeViewModel.text.observe(viewLifecycleOwner, Observer {
-            textView.text = it
-        })
+        textView = root.findViewById<TextView>(R.id.text_home).apply {
+            text = homeViewModel?.text?.value ?: text
+        }
 
         val btn_t1 = root.findViewById<Button>(R.id.f_h_btn_t1).apply {
             setOnClickListener {
@@ -45,8 +55,8 @@ class HomeFragment : Fragment() {
             }
         }
 
-        val tbtn_mon = root.findViewById<ToggleButton>(R.id.f_h_tbtn_mon).apply {
-            setOnCheckedChangeListener { buttonView, isChecked ->
+        tbtn_mon = root.findViewById<ToggleButton>(R.id.f_h_tbtn_mon).apply {
+            setOnCheckedChangeListener { _, isChecked ->
                 Core.paint(isChecked)
             }
         }
@@ -77,11 +87,21 @@ class HomeFragment : Fragment() {
             }
         }
 
+        fbLayout = root.findViewById(R.id.flexbox_layout)
+        
         return root
     }
 
-    override fun onDetach() {
-        Log.d(this::class.simpleName, "onDetach!!!")
-        super.onDetach()
+    override fun onPause() {
+        save()
+        super.onPause()
+    }
+
+    fun save() {
+        homeViewModel?.text?.value = textView.text.toString()
+        if (Core.boundCoreService) {
+            Core.coreService.CoreViewModel().putViewMode(homeViewModel!!)
+        }
+        Log.d(this::class.simpleName, "save!!!${textView.text}")
     }
 }

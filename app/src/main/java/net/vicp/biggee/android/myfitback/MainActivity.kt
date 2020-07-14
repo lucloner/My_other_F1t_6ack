@@ -1,5 +1,6 @@
 package net.vicp.biggee.android.myfitback
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
@@ -59,6 +60,21 @@ class MainActivity : AppCompatActivity() {
         navView.setupWithNavController(navController)
 
         Core.queryPermissions(this)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Bind to LocalService
+        Intent(this, CoreService::class.java).also { intent ->
+            bindService(intent, Core, Context.BIND_AUTO_CREATE)
+            startService(intent)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unbindService(Core)
+        Core.boundCoreService = false
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

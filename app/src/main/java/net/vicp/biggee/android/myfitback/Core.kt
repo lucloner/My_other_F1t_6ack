@@ -2,12 +2,17 @@ package net.vicp.biggee.android.myfitback
 
 import android.Manifest
 import android.app.Activity
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
+import android.os.IBinder
 import android.provider.MediaStore
 import android.util.Log
 import android.view.Gravity
@@ -15,6 +20,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.NumberPicker
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.core.view.children
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayout
@@ -63,7 +69,7 @@ import kotlin.random.Random
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     DeviceStateChangeCallback, HeartRateListener, Callable<Any>,
     EasyPermissions.PermissionCallbacks, EasyPermissions.RationaleCallbacks, BroadcastReceiver(),
-    IWXAPIEventHandler, SynchHistoryDataCallBack {
+    IWXAPIEventHandler, SynchHistoryDataCallBack, ServiceConnection {
     lateinit var activity: Activity
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
@@ -134,6 +140,18 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     lateinit var member: Member
     lateinit var course: Course
     var subject: Course? = null
+
+    lateinit var coreService: CoreService
+    var boundCoreService = false
+    val channelId by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createNotificationChannel(this::class.qualifiedName!!, activity.packageName)
+        } else {
+            // If earlier version channel ID is not used
+            // https://developer.android.com/reference/android/support/v4/app/NotificationCompat.Builder.html#NotificationCompat.Builder(android.content.Context)
+            ""
+        }
+    }
 
     fun regToWx() {
         // 将应用的appId注册到微信
@@ -638,5 +656,30 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
                 }
                 show()
             }
+    }
+
+    override fun onServiceDisconnected(name: ComponentName?) {
+        boundCoreService = false
+    }
+
+    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+        // We've bound to LocalService, cast the IBinder and get LocalService instance
+        val binder = service as CoreService.LocalBinder
+        coreService = binder.getService()
+        boundCoreService = true
+        Log.d(this::class.simpleName, "服务已绑定")
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun createNotificationChannel(channelId: String, channelName: String): String {
+        val chan = NotificationChannel(
+            channelId,
+            channelName, NotificationManager.IMPORTANCE_NONE
+        )
+        chan.lightColor = Color.BLUE
+        chan.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+        val service = activity.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        service.createNotificationChannel(chan)
+        return channelId
     }
 }
