@@ -12,6 +12,7 @@ import androidx.lifecycle.ViewModel
 import net.vicp.biggee.android.myfitback.ui.gallery.GalleryViewModel
 import net.vicp.biggee.android.myfitback.ui.home.HomeViewModel
 import net.vicp.biggee.android.myfitback.ui.slideshow.SlideshowViewModel
+import java.util.concurrent.ConcurrentHashMap
 
 class CoreService : Service() {
     private var serviceLooper: Looper? = null
@@ -19,7 +20,6 @@ class CoreService : Service() {
     private var startMode: Int = 0             // indicates how to behave if the service is killed
     private val binder = LocalBinder()            // interface for clients that bind
     private var allowRebind: Boolean = false   // indicates whether onRebind should be used
-    val viewModels = HashMap<String, ViewModel>()
 
     // Handler that receives messages from the thread
     private inner class ServiceHandler(looper: Looper) : Handler(looper) {
@@ -40,25 +40,7 @@ class CoreService : Service() {
         }
     }
 
-    inner class CoreViewModel : ViewModel() {
-        fun getHomeViewMode() = getViewMode(HomeViewModel::class.java)
-        fun getGalleryViewMode() = getViewMode(GalleryViewModel::class.java)
-        fun getSlideshowViewMode() = getViewMode(SlideshowViewModel::class.java)
-
-        inline fun <reified T> getViewMode(clazz: Class<T>): T? {
-            try {
-                val key = T::class.qualifiedName ?: return null
-                val result = viewModels.get(key) ?: return null
-                return result as T
-            } catch (e: Exception) {
-                Log.e(this::class.simpleName, "获取保存视图出错!", e)
-            }
-            return null
-        }
-
-        fun <T : ViewModel> putViewMode(viewModel: T) =
-            viewModels.put(viewModel::class.qualifiedName ?: "", viewModel)
-    }
+    inner class CoreViewModel : ViewModel()
 
     /**
      * Class used for the client Binder.  Because we know this service always
@@ -121,5 +103,27 @@ class CoreService : Service() {
 
     override fun onDestroy() {
         Toast.makeText(this, "后台服务关闭", Toast.LENGTH_SHORT).show()
+    }
+
+    companion object {
+        val viewModels = ConcurrentHashMap<String, ViewModel>()
+
+        fun getHomeViewMode() = getViewMode(HomeViewModel::class.java)
+        fun getGalleryViewMode() = getViewMode(GalleryViewModel::class.java)
+        fun getSlideshowViewMode() = getViewMode(SlideshowViewModel::class.java)
+
+        inline fun <reified T> getViewMode(clazz: Class<T>): T? {
+            try {
+                val key = T::class.qualifiedName ?: return null
+                val result = viewModels.get(key) ?: return null
+                return result as T
+            } catch (e: Exception) {
+                Log.e(this::class.simpleName, "获取保存视图出错!", e)
+            }
+            return null
+        }
+
+        fun <T : ViewModel> putViewMode(viewModel: T) =
+            viewModels.putIfAbsent(viewModel::class.qualifiedName ?: "", viewModel)
     }
 }

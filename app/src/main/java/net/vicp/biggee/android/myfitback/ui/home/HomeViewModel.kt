@@ -4,9 +4,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
 class HomeViewModel : ViewModel() {
-
-    private val _text = MutableLiveData<String>().apply {
+    val text: MutableLiveData<String> = MutableLiveData<String>().apply {
         value = "This is home Fragment"
     }
-    val text: MutableLiveData<String> = _text
+    val toggle = MutableLiveData<Boolean>(false)
 }

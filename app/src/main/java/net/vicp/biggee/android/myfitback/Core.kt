@@ -9,7 +9,10 @@ import android.content.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.os.*
+import android.os.Build
+import android.os.Bundle
+import android.os.Environment
+import android.os.IBinder
 import android.provider.MediaStore
 import android.util.Log
 import android.view.Gravity
@@ -78,10 +81,11 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
     lateinit var baseDevice: BaseDevice
+
+    @Volatile
     var heartRateChart: HeartRateChart? = null
     lateinit var scanner: BleScanner
     lateinit var manager: Manager
-    lateinit var handler: Handler
     val bleBeanSet = HashMap<String, BluetoothBean>()
     val timeout = 5
     var now = -1L
@@ -150,6 +154,8 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     val saveInstance = HashMap<String, Bundle>()
 
     lateinit var coreService: CoreService
+
+    @Volatile
     var boundCoreService = false
     val channelId by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -708,6 +714,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         }
     }
 
+    //用于保存视图的触发器接口
     interface SaveViewModel {
         fun save()
         fun load()

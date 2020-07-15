@@ -10,8 +10,10 @@ import android.widget.TextView
 import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.observe
 import com.google.android.flexbox.FlexboxLayout
 import net.vicp.biggee.android.myfitback.Core
+import net.vicp.biggee.android.myfitback.CoreService
 import net.vicp.biggee.android.myfitback.R
 import kotlin.system.exitProcess
 
@@ -31,7 +33,7 @@ class HomeFragment : Fragment(), Core.SaveViewModel {
 
         val btn_t1 = root.findViewById<Button>(R.id.f_h_btn_t1).apply {
             setOnClickListener {
-                textView.text = "主界面"
+                homeViewModel?.text?.value = "主界面"
                 Core.t1()
             }
         }
@@ -43,6 +45,7 @@ class HomeFragment : Fragment(), Core.SaveViewModel {
 
         tbtn_mon = root.findViewById<ToggleButton>(R.id.f_h_tbtn_mon).apply {
             setOnCheckedChangeListener { _, isChecked ->
+                homeViewModel?.toggle?.value = isChecked
                 Core.paint(isChecked)
             }
         }
@@ -75,35 +78,40 @@ class HomeFragment : Fragment(), Core.SaveViewModel {
 
         fbLayout = root.findViewById(R.id.flexbox_layout)
         load()
-        Core.currentFragment = this
         return root
     }
 
     override fun onPause() {
         save()
         super.onPause()
+        Log.d(this::class.simpleName, "onPause!!!")
     }
 
     override fun save() {
-        homeViewModel?.text?.value = textView.text.toString()
-        if (Core.boundCoreService) {
-            Core.coreService.CoreViewModel().putViewMode(homeViewModel!!)
-        }
-        Log.d(this::class.simpleName, "save!!!${textView.text}")
+        Log.d(this::class.simpleName, "save!!!")
+        CoreService.putViewMode(homeViewModel ?: return)
     }
 
     override fun load() {
-        Core.apply {
-            if (boundCoreService) {
-                homeViewModel = coreService.CoreViewModel().getHomeViewMode()
+        Core.currentFragment = this
+
+        homeViewModel = CoreService.getHomeViewMode()
+        if (homeViewModel == null) {
+            homeViewModel =
+                ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application)
+                    .create(HomeViewModel::class.java)
+        }
+
+        Log.d(this::class.simpleName, "读取保存视图")
+        homeViewModel?.apply {
+            text.observe(viewLifecycleOwner) {
+                textView.text = it
             }
-            if (homeViewModel == null) {
-                homeViewModel =
-                    ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application)
-                        .create(HomeViewModel::class.java)
+            toggle.observe(viewLifecycleOwner) {
+                tbtn_mon.isChecked = it
             }
         }
-        Log.d(this::class.simpleName, "读取保存视图:${homeViewModel?.text?.value}")
-        textView.text = homeViewModel?.text?.value ?: return
+
+        save()
     }
 }

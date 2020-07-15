@@ -1,13 +1,12 @@
 package net.vicp.biggee.android.myfitback.ui.gallery
 
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.github.mikephil.charting.data.LineData
 
 class GalleryViewModel : ViewModel() {
-
-    private val _text = MutableLiveData<String>().apply {
+    val text = MutableLiveData<String>().apply {
         value = "This is gallery Fragment"
     }
-    val text: LiveData<String> = _text
+    val data: MutableLiveData<out LineData> = MutableLiveData(LineData())
 }
