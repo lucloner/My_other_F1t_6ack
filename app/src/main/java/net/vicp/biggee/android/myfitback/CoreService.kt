@@ -122,6 +122,4 @@ class CoreService : Service() {
     override fun onDestroy() {
         Toast.makeText(this, "后台服务关闭", Toast.LENGTH_SHORT).show()
     }
-
-
 }

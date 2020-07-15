@@ -9,21 +9,23 @@ import android.content.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.os.Build
-import android.os.Environment
-import android.os.Handler
-import android.os.IBinder
+import android.os.*
 import android.provider.MediaStore
 import android.util.Log
 import android.view.Gravity
+import android.view.MenuItem
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.NumberPicker
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.core.view.children
+import androidx.navigation.NavController
+import androidx.navigation.NavDestination
+import androidx.navigation.ui.AppBarConfiguration
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayout
+import com.google.android.material.navigation.NavigationView
 import com.google.gson.Gson
 import com.onecoder.devicelib.FitBleKit
 import com.onecoder.devicelib.armband.api.ArmBandManager
@@ -64,13 +66,14 @@ import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.function.BooleanSupplier
 import kotlin.random.Random
 
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     DeviceStateChangeCallback, HeartRateListener, Callable<Any>,
     EasyPermissions.PermissionCallbacks, EasyPermissions.RationaleCallbacks, BroadcastReceiver(),
-    IWXAPIEventHandler, SynchHistoryDataCallBack, ServiceConnection, BooleanSupplier {
+    IWXAPIEventHandler, SynchHistoryDataCallBack, ServiceConnection,
+    AppBarConfiguration.OnNavigateUpListener, NavigationView.OnNavigationItemSelectedListener,
+    NavController.OnDestinationChangedListener {
     lateinit var activity: Activity
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
@@ -125,6 +128,9 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     val requestCodeBase by lazy { hashCode() and 128 }
     lateinit var tmpFile: File
 
+    @Volatile
+    lateinit var currentFragment: SaveViewModel
+
     // APP_ID 替换为你的应用从官方网站申请到的合法appID
     const val APP_ID = "wx5cfc47c7c05b8d97"
     const val ACCESS_TOKEN =
@@ -141,6 +147,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     lateinit var member: Member
     lateinit var course: Course
     var subject: Course? = null
+    val saveInstance = HashMap<String, Bundle>()
 
     lateinit var coreService: CoreService
     var boundCoreService = false
@@ -210,9 +217,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     override fun unFindDevice() {
-//        if (!Alerter.isShowing) {
-//            Alerter.create(activity).setText("未知触发unFindDevice").show()
-//        }
+        Log.d(this::class.simpleName, "unFindDevice!!!")
     }
 
     override fun findDevice(p0: BluetoothBean?) {
@@ -338,21 +343,15 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     override fun onBleSwitchedBySystem(p0: Boolean) {
-//        if (!Alerter.isShowing) {
-//            Alerter.create(activity).setText("未知触发onBleSwitchedBySystem $p0").show()
-//        }
+        Log.d(this::class.simpleName, "onBleSwitchedBySystem!!!")
     }
 
     override fun onRequestSwitchOnBle() {
-//        if (!Alerter.isShowing) {
-//            Alerter.create(activity).setText("未知触发onRequestSwitchOnBle").show()
-//        }
+        Log.d(this::class.simpleName, "onRequestSwitchOnBle!!!")
     }
 
     override fun onEnableWriteToDevice(p0: String?, p1: Boolean) {
-//        if (!Alerter.isShowing) {
-//            Alerter.create(activity).setText("未知触发onEnableWriteToDevice $p0 $p1").show()
-//        }
+        Log.d(this::class.simpleName, "onEnableWriteToDevice!!!")
     }
 
     override fun onStateChange(p0: String?, p1: Int) {
@@ -505,11 +504,11 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     override fun onRationaleDenied(requestCode: Int) {
-
+        Log.d(this::class.simpleName, "onRationaleDenied!!!")
     }
 
     override fun onRationaleAccepted(requestCode: Int) {
-
+        Log.d(this::class.simpleName, "onRationaleAccepted!!!")
     }
 
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -584,7 +583,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     override fun onSynchStateChange(p0: Int) {
-
+        Log.d(this::class.simpleName, "onSynchStateChange!!!")
     }
 
     override fun onSynchAllHistoryData(p0: HistoryDataEntity?) {
@@ -683,5 +682,34 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         service.createNotificationChannel(chan)
         return channelId
     }
-    
+
+    override fun onNavigateUp(): Boolean {
+        Log.d(this::class.simpleName, "onNavigateUp!!!")
+        return false
+    }
+
+    @Deprecated("实测挂载后覆盖原有功能")
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        Log.d(this::class.simpleName, "onNavigationItemSelected!!!" + item.title)
+        return true
+    }
+
+    override fun onDestinationChanged(
+        controller: NavController,
+        destination: NavDestination,
+        arguments: Bundle?
+    ) {
+        Log.d(
+            this::class.simpleName,
+            "onDestinationChanged!!! ${controller.currentDestination} --->> $destination"
+        )
+        if (this::currentFragment.isInitialized) {
+            currentFragment.save()
+        }
+    }
+
+    interface SaveViewModel {
+        fun save()
+        fun load()
+    }
 }
