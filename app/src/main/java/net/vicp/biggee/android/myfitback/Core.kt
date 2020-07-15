@@ -64,12 +64,13 @@ import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.function.BooleanSupplier
 import kotlin.random.Random
 
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     DeviceStateChangeCallback, HeartRateListener, Callable<Any>,
     EasyPermissions.PermissionCallbacks, EasyPermissions.RationaleCallbacks, BroadcastReceiver(),
-    IWXAPIEventHandler, SynchHistoryDataCallBack, ServiceConnection {
+    IWXAPIEventHandler, SynchHistoryDataCallBack, ServiceConnection, BooleanSupplier {
     lateinit var activity: Activity
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
@@ -682,4 +683,5 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         service.createNotificationChannel(chan)
         return channelId
     }
+    
 }

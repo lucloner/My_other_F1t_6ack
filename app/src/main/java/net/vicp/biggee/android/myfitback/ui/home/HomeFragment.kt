@@ -88,7 +88,7 @@ class HomeFragment : Fragment() {
         }
 
         fbLayout = root.findViewById(R.id.flexbox_layout)
-        
+
         return root
     }
 
