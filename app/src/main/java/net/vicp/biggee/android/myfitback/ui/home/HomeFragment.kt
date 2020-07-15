@@ -1,7 +1,6 @@
 package net.vicp.biggee.android.myfitback.ui.home
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,7 +8,6 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import com.google.android.flexbox.FlexboxLayout
 import net.vicp.biggee.android.myfitback.Core
 import net.vicp.biggee.android.myfitback.R
@@ -19,7 +17,7 @@ class HomeFragment : Fragment(), Core.SaveViewModel {
     private lateinit var textView: TextView
     private lateinit var fbLayout: FlexboxLayout
     private lateinit var tbtn_mon: ToggleButton
-    private var homeViewModel: HomeViewModel? = null
+    private var viewModel: HomeViewModel? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,7 +25,7 @@ class HomeFragment : Fragment(), Core.SaveViewModel {
         savedInstanceState: Bundle?
     ): View? {
         val root = inflater.inflate(R.layout.fragment_home, container, false)
-        textView = root.findViewById<TextView>(R.id.text_home)
+        textView = root.findViewById(R.id.text_home)
 
         val btn_t1 = root.findViewById<Button>(R.id.f_h_btn_t1).apply {
             setOnClickListener {
@@ -75,7 +73,6 @@ class HomeFragment : Fragment(), Core.SaveViewModel {
 
         fbLayout = root.findViewById(R.id.flexbox_layout)
         load()
-        Core.currentFragment = this
         return root
     }
 
@@ -84,26 +81,7 @@ class HomeFragment : Fragment(), Core.SaveViewModel {
         super.onPause()
     }
 
-    override fun save() {
-        homeViewModel?.text?.value = textView.text.toString()
-        if (Core.boundCoreService) {
-            Core.coreService.CoreViewModel().putViewMode(homeViewModel!!)
-        }
-        Log.d(this::class.simpleName, "save!!!${textView.text}")
-    }
-
     override fun load() {
-        Core.apply {
-            if (boundCoreService) {
-                homeViewModel = coreService.CoreViewModel().getHomeViewMode()
-            }
-            if (homeViewModel == null) {
-                homeViewModel =
-                    ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application)
-                        .create(HomeViewModel::class.java)
-            }
-        }
-        Log.d(this::class.simpleName, "读取保存视图:${homeViewModel?.text?.value}")
-        textView.text = homeViewModel?.text?.value ?: return
+
     }
 }

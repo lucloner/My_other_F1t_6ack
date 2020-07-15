@@ -20,6 +20,7 @@ import android.widget.NumberPicker
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.core.view.children
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.ui.AppBarConfiguration
@@ -708,8 +709,19 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         }
     }
 
-    interface SaveViewModel {
-        fun save()
-        fun load()
+    abstract class SaveViewModel {
+        open var viewModel: ViewModel? = null
+        open fun save() {
+            Core.apply {
+                if (boundCoreService) {
+                    coreService.CoreViewModel().putViewMode(viewModel!!)
+                }
+            }
+            Log.d(this::class.simpleName, "save!!!$viewModel")
+        }
+
+        open fun load() {
+            Log.d(this::class.simpleName, "读取保存视图:${viewModel}")
+        }
     }
 }
