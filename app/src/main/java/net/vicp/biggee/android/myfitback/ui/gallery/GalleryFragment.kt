@@ -65,12 +65,14 @@ class GalleryFragment : Fragment(), Core.SaveViewModel {
             }
         }
 
+        save()
+
         lineChart.apply {
-            Core.heartRateChart = HeartRateChart(this).also {
+            HeartRateChart.current?.also {
+                it.setLineChart(this)
                 setOnChartValueSelectedListener(it)
             }
             invalidate()
         }
-        save()
     }
 }

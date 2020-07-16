@@ -11,14 +11,13 @@ import com.github.mikephil.charting.highlight.Highlight
 import net.vicp.biggee.android.myfitback.R
 import net.vicp.biggee.android.myfitback.db.room.HeartRate
 
-class HeartRateChart(chart: LineChart) : DrawLineChart(chart, title[0]) {
+class HeartRateChart(lineData: LineData = LineData()) :
+    DrawLineChart(lineData, title[0]) {
     var startX = -1.0
+    var chart: LineChart? = null
 
     init {
-        chart.apply {
-            animateXY(2000, 2000, Easing.EaseInCubic)
-            data = data ?: LineData()
-        }.data.apply {
+        lineData.apply {
             isHighlightEnabled = true
             if (dataSetCount >= 2) {
                 startX = xMax.toDouble()
@@ -26,26 +25,37 @@ class HeartRateChart(chart: LineChart) : DrawLineChart(chart, title[0]) {
             for (i in dataSetCount until 2) {
                 addDataSet(LineDataSet(null, title[i]))
             }
-        }.dataSets.apply {
-            getDataSetHeartRate(get(0) as LineDataSet)
-            getDataSetBurn(get(1) as LineDataSet)
         }
-        Log.d(this::class.simpleName, "init!!! ${lineChart.data.dataSets}")
-    }
 
+        Log.d(this::class.simpleName, "init!!! ${lineData.dataSetCount}")
+        current = this
+    }
 
     fun getDataSetHeartRate(lineDataSet: LineDataSet) = lineDataSet.apply {
         setDrawFilled(true)
-        fillDrawable = lineChart.context.getDrawable(R.drawable.fade_red)
+        fillDrawable = chart?.context?.getDrawable(R.drawable.fade_red)
         mode = LineDataSet.Mode.CUBIC_BEZIER
         setDrawCircles(false)
     }
 
     fun getDataSetBurn(lineDataSet: LineDataSet) = lineDataSet.apply {
         setDrawFilled(true)
-        fillDrawable = lineChart.context.getDrawable(R.drawable.fade_gold)
+        fillDrawable = chart?.context?.getDrawable(R.drawable.fade_gold)
         mode = LineDataSet.Mode.STEPPED
         setDrawCircles(false)
+    }
+
+    fun setLineChart(lineChart: LineChart) {
+        chart = lineChart
+        lineChart.apply {
+            animateXY(2000, 2000, Easing.EaseInCubic)
+            data = lineData.apply {
+                dataSets.apply {
+                    getDataSetHeartRate(get(0) as LineDataSet)
+                    getDataSetBurn(get(1) as LineDataSet)
+                }
+            }
+        }
     }
 
     fun addHeartRate(heartRate: HeartRate) {
@@ -68,12 +78,28 @@ class HeartRateChart(chart: LineChart) : DrawLineChart(chart, title[0]) {
     }
 
     override fun onValueSelected(e: Entry?, h: Highlight?) {
-        val yName = lineChart.data.getDataSetByIndex(h?.dataSetIndex ?: 0)
+        val yName = lineData.getDataSetByIndex(h?.dataSetIndex ?: 0)
         Log.d(this::class.simpleName, "onValueSelected!!! $e $h")
-        Toast.makeText(lineChart.context, "时间(秒):${e?.x} $yName:${e?.y}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            chart?.context,
+            "时间(秒):${e?.x ?: 0 / 1000} $yName:${e?.y?.toInt()}",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     companion object {
         val title = arrayOf("心率", "热量")
+
+        @Volatile
+        var current: HeartRateChart? = null
+            set(value) {
+                val old = field
+                field = value
+                old?.chart?.data = LineData()
+            }
+
+        fun repaint() {
+            repaint(current?.chart ?: return)
+        }
     }
 }

@@ -81,9 +81,6 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     lateinit var sdk: FitBleKit
     lateinit var blService: BluetoothLeService
     lateinit var baseDevice: BaseDevice
-
-    @Volatile
-    var heartRateChart: HeartRateChart? = null
     lateinit var scanner: BleScanner
     lateinit var manager: Manager
     val bleBeanSet = HashMap<String, BluetoothBean>()
@@ -416,15 +413,21 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     override fun call(): Any {
-        //Log.i(this::class.simpleName,"===画图===$monitor===${heartRateHistory.size}")
-        heartRateChart ?: return 2
-        while (heartRateHistory.isNotEmpty()) {
-            if (!monitor) {
-                return 1
+        try {
+            HeartRateChart.apply {
+                current?.apply {
+                    while (heartRateHistory.isNotEmpty()) {
+                        if (!monitor) {
+                            return 1
+                        }
+                        addHeartRate(heartRateHistory.poll() ?: continue)
+                    }
+                } ?: return 2
+                repaint()
             }
-            heartRateChart?.addHeartRate(heartRateHistory.poll() ?: continue)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        heartRateChart?.repaint()
         return 0
     }
 
