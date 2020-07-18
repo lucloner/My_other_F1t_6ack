@@ -59,16 +59,15 @@ import com.tencent.mm.opensdk.modelbase.BaseResp
 import com.tencent.mm.opensdk.modelmsg.SendAuth
 import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler
 import com.tencent.mm.opensdk.openapi.WXAPIFactory
-import net.vicp.biggee.android.myfitback.db.room.Course
-import net.vicp.biggee.android.myfitback.db.room.HeartRate
-import net.vicp.biggee.android.myfitback.db.room.Member
-import net.vicp.biggee.android.myfitback.db.room.RoomDatabaseHelper
+import net.vicp.biggee.android.myfitback.db.room.*
 import net.vicp.biggee.android.myfitback.exe.Pool
 import net.vicp.biggee.android.myfitback.ui.HeartRateChart
 import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
+import java.time.LocalDateTime
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.stream.Collectors
 import kotlin.random.Random
 
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
@@ -163,6 +162,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             ""
         }
     }
+    val timeStemp by lazy { LocalDateTime.now() }
 
     fun regToWx() {
         // 将应用的appId注册到微信
@@ -413,6 +413,7 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     override fun call(): Any {
+        timeStemp
         try {
             HeartRateChart.apply {
                 current?.apply {
@@ -721,5 +722,21 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     interface SaveViewModel {
         fun save()
         fun load()
+    }
+
+    fun loadHeartRate(from: LocalDateTime = timeStemp) {
+        val converter = Converter()
+        var timeUntil =
+            heartRateHistory.parallelStream().map { it.createTime }.collect(Collectors.toList())
+                .apply {
+                    sortBy { converter.localDateTimeToDB(it) }
+                }.first()
+        Pool.addJob(Runnable {
+            RoomDatabaseHelper.getInstance(activity).readHeartRate(from).parallelStream().forEach {
+                if (it.createTime < timeUntil) {
+                    heartRateHistory.add(it)
+                }
+            }
+        })
     }
 }

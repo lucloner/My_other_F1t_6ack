@@ -27,10 +27,14 @@ abstract class DrawLineChart(
     companion object {
         val widthX = 60F
         fun repaint(lineChart: LineChart) {
-            lineChart.apply {
-                notifyDataSetChanged()
-                setVisibleXRangeMaximum(widthX)
-                moveViewTo(data.xMax - widthX, data.yMax, YAxis.AxisDependency.LEFT)
+            try {
+                lineChart.apply {
+                    notifyDataSetChanged()
+                    setVisibleXRangeMaximum(widthX)
+                    moveViewTo(data.xMax - widthX, data.yMax, YAxis.AxisDependency.LEFT)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

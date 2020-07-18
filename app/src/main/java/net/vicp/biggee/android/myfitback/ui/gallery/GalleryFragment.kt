@@ -28,8 +28,8 @@ class GalleryFragment : Fragment(), Core.SaveViewModel {
     ): View? {
         val root = inflater.inflate(R.layout.fragment_gallery, container, false)
         textView = root.findViewById(R.id.text_gallery)
-
         lineChart = root.findViewById(R.id.f_h_chart)
+
         load()
         return root
     }
@@ -66,7 +66,6 @@ class GalleryFragment : Fragment(), Core.SaveViewModel {
         }
 
         save()
-
         lineChart.apply {
             HeartRateChart.current?.also {
                 it.setLineChart(this)
