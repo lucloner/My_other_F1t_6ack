@@ -151,6 +151,8 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
 
     lateinit var coreService: CoreService
 
+    var deviceStatusListener: DevBounded? = null
+
     @Volatile
     var boundCoreService = false
     val channelId by lazy {
@@ -393,6 +395,8 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
                 }
             }
             Alerter.create(activity).setText("蓝牙连接状态:($p0)$msg").show()
+            Log.d(this::class.simpleName, "蓝牙连接状态更新:($p0)$msg $deviceStatusListener")
+            deviceStatusListener?.devBounded(baseDevice, manager, p0, p1)
         }
     }
 
@@ -601,31 +605,27 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     fun startCourse(connect: Boolean = connected) {
-//        if(!connect) {
-//            Alerter.create(activity)
-//                .setText("还未连接蓝牙！")
-//                .addButton("连接",onClick = View.OnClickListener {
-//                    Alerter.hide()
-//                    Pool.addJob(Runnable {
-//                        while (Alerter.isShowing){
-//                            Thread.sleep(1000)
-//                        }
-//                        connect()
-//                        paint(true)
-//                    })
-//
-//                })
-//                .addButton("离线模式",onClick = View.OnClickListener {
-//                    startCourse(true)
-//                    paint(true)
-//                })
-//                .addButton("取消",onClick = View.OnClickListener {
-//                    return@OnClickListener
-//                })
-//                .show()
-//            connect()
-//        }
+        deviceStatusListener = object : DevBounded {
+            override fun devBounded(
+                device: BaseDevice,
+                manager: Manager,
+                deviceName: String?,
+                status: Int
+            ) {
+                Log.d(this::class.simpleName, "deviceStatusListener")
+                if (status == 4) {
+                    deviceStatusListener = null
+                    selectCourse()
+                }
+            }
+        }
 
+        if (!connect) {
+            connect()
+        }
+    }
+
+    fun selectCourse() {
         dialogPlus = DialogPlus.newDialog(activity)
             .setContentHolder(ViewHolder(R.layout.dialogue_course))
             .setGravity(Gravity.CENTER)
@@ -738,5 +738,9 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
                 }
             }
         })
+    }
+
+    interface DevBounded {
+        fun devBounded(device: BaseDevice, manager: Manager, deviceName: String?, status: Int)
     }
 }
