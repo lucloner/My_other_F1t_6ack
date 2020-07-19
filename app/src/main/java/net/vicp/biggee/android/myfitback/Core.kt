@@ -19,10 +19,8 @@ import android.view.Gravity
 import android.view.MenuItem
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.NumberPicker
 import android.widget.TextView
 import androidx.annotation.RequiresApi
-import androidx.core.view.children
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.ui.AppBarConfiguration
@@ -51,7 +49,6 @@ import com.onecoder.devicelib.heartrate.api.HeartRateMonitorManager
 import com.onecoder.devicelib.heartrate.api.interfaces.HeartRateListener
 import com.orhanobut.dialogplus.DialogPlus
 import com.orhanobut.dialogplus.ViewHolder
-import com.pdog.dimension.dp
 import com.tapadoo.alerter.Alerter
 import com.tencent.mm.opensdk.constants.ConstantsAPI
 import com.tencent.mm.opensdk.modelbase.BaseReq
@@ -61,6 +58,7 @@ import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler
 import com.tencent.mm.opensdk.openapi.WXAPIFactory
 import net.vicp.biggee.android.myfitback.db.room.*
 import net.vicp.biggee.android.myfitback.exe.Pool
+import net.vicp.biggee.android.myfitback.ui.CourseDialogue
 import net.vicp.biggee.android.myfitback.ui.HeartRateChart
 import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
@@ -68,7 +66,6 @@ import java.time.LocalDateTime
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.stream.Collectors
-import kotlin.random.Random
 
 object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     DeviceStateChangeCallback, HeartRateListener, Callable<Any>,
@@ -178,10 +175,11 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
         if (!this::activity.isInitialized || this.activity != activity) {
             this.activity = activity
         }
+        Log.d(this::class.simpleName, "获取当前上下文信息:$activity")
         return this.activity
     }
 
-    fun queryPermissions(activity: Activity? = null) {
+    fun queryPermissions(activity: Activity? = this.activity) {
         syncActivity(activity)
         if (!EasyPermissions.hasPermissions(this.activity, *permissions)) {
             EasyPermissions.requestPermissions(
@@ -605,67 +603,13 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     fun startCourse(connect: Boolean = connected) {
-        deviceStatusListener = object : DevBounded {
-            override fun devBounded(
-                device: BaseDevice,
-                manager: Manager,
-                deviceName: String?,
-                status: Int
-            ) {
-                Log.d(this::class.simpleName, "deviceStatusListener")
-                if (status == 4) {
-                    deviceStatusListener = null
-                    selectCourse()
-                }
-            }
+        deviceStatusListener = CourseDialogue.apply {
+            init(this@Core.activity)
         }
 
         if (!connect) {
             connect()
         }
-    }
-
-    fun selectCourse() {
-        dialogPlus = DialogPlus.newDialog(activity)
-            .setContentHolder(ViewHolder(R.layout.dialogue_course))
-            .setGravity(Gravity.CENTER)
-            .create().apply {
-                val dialogSelected = findViewById(R.id.d_c_tv_title2) as TextView
-                (findViewById(R.id.d_c_fb_member) as FlexboxLayout).apply {
-                    val rnd = Random(requestCodeBase)
-                    memberList.forEach {
-                        addView(TextView(activity).apply {
-                            text = it.name
-                            setOnClickListener { _ ->
-                                dialogSelected.text = it.name
-                                member = it
-                            }
-                        })
-                    }
-                    children.forEach {
-                        if (it is TextView) {
-                            it.apply {
-                                it.setBackgroundColor(rnd.nextInt())
-                                it.textSize = 5F.dp
-                            }
-                        }
-                    }
-                }
-
-                (findViewById(R.id.hourpicker) as NumberPicker).apply {
-                    minValue = 0
-                    maxValue = 12
-                }
-                (findViewById(R.id.minuteicker) as NumberPicker).apply {
-                    minValue = 0
-                    maxValue = 60
-                }
-                (findViewById(R.id.secondicker) as NumberPicker).apply {
-                    minValue = 0
-                    maxValue = 60
-                }
-                show()
-            }
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {

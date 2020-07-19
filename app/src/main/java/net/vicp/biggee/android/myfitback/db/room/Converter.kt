@@ -8,9 +8,19 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.stream.Collectors
 
 open class Converter {
+    private val gson = Gson()
+
+    @TypeConverter
+    fun courseListToDB(list: CopyOnWriteArrayList<Course>) = gson.toJson(list)
+
+    @TypeConverter
+    fun dbToCourseList(json: String) =
+        gson.fromJson<CopyOnWriteArrayList<Course>>(json, CopyOnWriteArrayList::class.java)
+
     @TypeConverter
     fun localDateTimeToDB(time: LocalDateTime) = time.toInstant(ZoneOffset.UTC).toEpochMilli()
 

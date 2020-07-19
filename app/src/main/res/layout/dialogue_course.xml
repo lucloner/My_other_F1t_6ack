@@ -10,7 +10,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="开始课程"
-        android:textSize="20dp"
+        android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -20,7 +20,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="请选择学员:"
-        android:textSize="20dp"
+        android:textSize="20sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/d_c_tv_title" />
 
@@ -29,7 +29,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="未选择"
-        android:textSize="20dp"
+        android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/d_c_tv_title1"
         app:layout_constraintTop_toBottomOf="@+id/d_c_tv_title" />
@@ -42,17 +42,38 @@
         app:layout_constraintStart_toStartOf="parent"
         app:dividerDrawable="@drawable/divider"
         app:layout_constraintTop_toBottomOf="@+id/d_c_tv_title2"
-        app:showDivider="middle"></com.google.android.flexbox.FlexboxLayout>
+        app:showDivider="middle" />
+
+    <TextView
+        android:id="@+id/d_c_tv_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="50sp"
+        android:layout_marginTop="100sp"
+        android:text="课程类型"
+        android:textSize="20sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/d_c_fb_member" />
+
+    <AppCompatAutoCompleteTextView
+        android:id="@+id/d_c_tv_course"
+        android:layout_width="200sp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20sp"
+        android:completionThreshold="1"
+        android:textSize="20sp"
+        app:layout_constraintStart_toEndOf="@+id/d_c_tv_label"
+        app:layout_constraintTop_toTopOf="@+id/d_c_tv_label" />
 
     <TextView
         android:id="@+id/d_c_tv_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="训练时间："
-        android:textSize="20dp"
+        android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/d_c_fb_member" />
+        app:layout_constraintTop_toBottomOf="@+id/d_c_tv_course" />
 
     <LinearLayout
         android:id="@+id/d_c_linearLayout"
