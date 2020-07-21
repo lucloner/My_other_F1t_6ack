@@ -367,10 +367,10 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
                         (manager as ArmBandManager).apply {
                             if (needSysBlePaired == true) {
                                 pair("123456")
+                                Log.e(this::class.simpleName, "手环密码:123456")
                                 confirmPassword()
                             }
                             synchHistoryData(this@Core)
-                            Log.e(this::class.simpleName, "手环协议类型:$protocolType")
                         }
                     }
                 }
@@ -394,7 +394,9 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
             }
             Alerter.create(activity).setText("蓝牙连接状态:($p0)$msg").show()
             Log.d(this::class.simpleName, "蓝牙连接状态更新:($p0)$msg $deviceStatusListener")
-            deviceStatusListener?.devBounded(baseDevice, manager, p0, p1)
+            if (deviceStatusListener?.devBounded(baseDevice, manager, p0, p1) == true) {
+                deviceStatusListener = null
+            }
         }
     }
 
@@ -609,6 +611,14 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
 
         if (!connect) {
             connect()
+        } else if (deviceStatusListener?.devBounded(
+                baseDevice,
+                manager,
+                baseDevice.name,
+                BleDevice.STATE_CONNECTED
+            ) == true
+        ) {
+            deviceStatusListener = null
         }
     }
 
@@ -685,6 +695,11 @@ object Core : BleScanCallBack, RealTimeDataListener, CheckSystemBleCallback,
     }
 
     interface DevBounded {
-        fun devBounded(device: BaseDevice, manager: Manager, deviceName: String?, status: Int)
+        fun devBounded(
+            device: BaseDevice,
+            manager: Manager,
+            deviceName: String?,
+            status: Int
+        ): Boolean
     }
 }

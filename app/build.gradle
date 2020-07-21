@@ -12,7 +12,7 @@ android {
             keyPassword '12345678'
         }
     }
-    compileSdkVersion 30
+    compileSdkVersion 29
     buildToolsVersion '30.0.1'
 
     defaultConfig {

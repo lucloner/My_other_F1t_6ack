@@ -1,20 +1,27 @@
 package net.vicp.biggee.android.myfitback.ui
 
 import android.app.Activity
+import android.util.Log
 import android.view.Gravity
+import android.widget.AutoCompleteTextView
 import android.widget.NumberPicker
 import android.widget.SimpleAdapter
 import android.widget.TextView
-import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import com.google.android.flexbox.FlexboxLayout
 import com.onecoder.devicelib.base.api.Manager
+import com.onecoder.devicelib.base.control.entity.BleDevice
 import com.onecoder.devicelib.base.entity.BaseDevice
 import com.orhanobut.dialogplus.DialogPlus
 import com.orhanobut.dialogplus.ViewHolder
 import com.pdog.dimension.dp
+import net.sourceforge.pinyin4j.PinyinHelper
+import net.sourceforge.pinyin4j.format.HanyuPinyinCaseType
+import net.sourceforge.pinyin4j.format.HanyuPinyinOutputFormat
+import net.sourceforge.pinyin4j.format.HanyuPinyinToneType
 import net.vicp.biggee.android.myfitback.Core
 import net.vicp.biggee.android.myfitback.R
 import net.vicp.biggee.android.myfitback.db.room.Course
+import java.util.stream.Collectors
 import kotlin.random.Random
 
 object CourseDialogue : Core.DevBounded {
@@ -28,13 +35,28 @@ object CourseDialogue : Core.DevBounded {
     lateinit var hour: NumberPicker
     lateinit var minute: NumberPicker
     lateinit var second: NumberPicker
-    lateinit var courseType: AppCompatAutoCompleteTextView
+    lateinit var courseType: AutoCompleteTextView
     val courseTypesAdapter by lazy {
-        SimpleAdapter(activity, ArrayList<HashMap<String, String>>().apply {
-            Course.baseTitle.forEach {
-
-            }
-        }, android.R.layout.simple_dropdown_item_1line)
+        SimpleAdapter(
+            activity,
+            ArrayList<HashMap<String, String>>().apply {
+                Course.baseTitle.forEach {
+                    val py = PinyinHelper.toHanYuPinyinString(it, HanyuPinyinOutputFormat().apply {
+                        caseType = HanyuPinyinCaseType.LOWERCASE
+                        toneType = HanyuPinyinToneType.WITHOUT_TONE
+                    }, "_", true).split("_").parallelStream().map { s -> s.first() }
+                        .collect(Collectors.toList())
+                    val map = HashMap<String, String>().apply {
+                        put("brandName", it)
+                        put("searchText", String(py.toCharArray()))
+                    }
+                    add(map)
+                }
+            },
+            R.layout.main_item_three_line_row,
+            arrayOf("searchText", "brandName"),
+            intArrayOf(R.id.searchText, R.id.brandName)
+        )
     }
 
     fun init(activity: Activity) {
@@ -76,12 +98,15 @@ object CourseDialogue : Core.DevBounded {
                     maxValue = 60
                 }
                 courseType =
-                    (findViewById(R.id.d_c_tv_course) as AppCompatAutoCompleteTextView).apply {
-                        setAdapter(courseTypesAdapter.apply {
-                            addAll(*Course.baseTitle)
-                        })
+                    (findViewById(R.id.d_c_tv_course) as AutoCompleteTextView).apply {
+                        setAdapter(courseTypesAdapter)
+                        setOnItemClickListener { _, view, _, _ ->
+                            val brandName = view.findViewById<TextView>(R.id.brandName).text
+                            setText(brandName)
+                            setSelection(brandName.length)
+                        }
                     }
-
+                Log.d(this::class.simpleName, "启动开课对话框")
                 show()
             }
     }
@@ -91,10 +116,12 @@ object CourseDialogue : Core.DevBounded {
         manager: Manager,
         deviceName: String?,
         status: Int
-    ) {
-        if (status == 4) {
+    ): Boolean {
+        if (status >= BleDevice.STATE_CONNECTED) {
             newDialogue()
+            return true
         }
+        return false
     }
 
 

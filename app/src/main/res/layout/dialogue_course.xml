@@ -55,7 +55,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/d_c_fb_member" />
 
-    <AppCompatAutoCompleteTextView
+    <AutoCompleteTextView
         android:id="@+id/d_c_tv_course"
         android:layout_width="200sp"
         android:layout_height="wrap_content"
