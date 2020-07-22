@@ -71,6 +71,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="开始课程" />
+
+            <Button
+                android:id="@+id/f_h_btn_endcourse"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="结束课程" />
         </com.google.android.flexbox.FlexboxLayout>
     </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>
