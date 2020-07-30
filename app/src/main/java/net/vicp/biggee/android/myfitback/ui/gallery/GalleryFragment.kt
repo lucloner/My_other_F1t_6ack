@@ -20,6 +20,8 @@ class GalleryFragment : Fragment(), Core.SaveViewModel {
     private var galleryViewModel: GalleryViewModel? = null
     private lateinit var textView: TextView
     private lateinit var lineChart: LineChart
+    private lateinit var heartChart: LineChart
+    private lateinit var levelChart: LineChart
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -29,6 +31,8 @@ class GalleryFragment : Fragment(), Core.SaveViewModel {
         val root = inflater.inflate(R.layout.fragment_gallery, container, false)
         textView = root.findViewById(R.id.text_gallery)
         lineChart = root.findViewById(R.id.f_h_chart)
+        heartChart = root.findViewById(R.id.f_h_heart)
+        levelChart = root.findViewById(R.id.f_h_level)
 
         load()
         return root

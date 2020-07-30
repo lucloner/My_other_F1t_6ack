@@ -13,4 +13,14 @@ class GalleryViewModel : ViewModel() {
             HeartRateChart.current?.lineData ?: HeartRateChart().lineData
         )
     }
+    val dataHeart by lazy {
+        MutableLiveData(
+            HeartRateChart.current?.lineData ?: HeartRateChart().lineData
+        )
+    }
+    val dataLevel by lazy {
+        MutableLiveData(
+            HeartRateChart.current?.lineData ?: HeartRateChart().lineData
+        )
+    }
 }

@@ -36,14 +36,6 @@ data class HeartRate(
 
     var burn: Double = 0.0
         get() {
-            /*
-            * maxhrtanaka = 208 - (0.7*age);
-		    * lowercalculationlimit = Math.round(0.64*maxhrtanaka);
-		    * uppercalculationlimit = 200;
-            * caloricexpenditureperhour = Math.round(((-55.0969 + (0.6309*heartrate) + (0.1988*kilogramweight) + (0.2017*age))/4.184)*60);
-            * caloricexpenditureperhour = Math.round(((-20.4022 + (0.4472*heartrate) - (0.1263*kilogramweight) + (0.074*age))/4.184)*60);
-            * caloricexpenditure = Math.round(caloricexpenditureperhour*hours);
-            * */
             field = if (gender == "male")
                 ((-55.0969 + (0.6309 * heartRate) + (0.1988 * weight) + (0.2017 * age)) / 4.184) * 60
             else if (gender == "female")
