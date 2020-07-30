@@ -17,6 +17,8 @@ data class Course(
     var details = ""
     var subList = CopyOnWriteArrayList<Course>()
     var heavy = 0
+    var sumHR = 0
+    var sumCal = 0
 
     @Ignore
     override var size: Int = 0

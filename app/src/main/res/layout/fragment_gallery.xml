@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     tools:context=".ui.gallery.GalleryFragment">
 
@@ -17,4 +18,42 @@
         android:id="@+id/f_h_chart"
         android:layout_width="match_parent"
         android:layout_height="300dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.google.android.flexbox.FlexboxLayout
+            android:id="@+id/f_g_f_layout_course"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:flexWrap="wrap">
+
+            <ImageButton
+                android:id="@+id/f_g_f_btn_add"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:maxWidth="80dp"
+                android:maxHeight="80dp"
+                android:minWidth="80dp"
+                android:minHeight="80dp"
+                android:scaleType="center"
+                android:src="@mipmap/dumbbell_foreground" />
+
+            <ImageButton
+                android:id="@+id/f_g_f_btn_shot"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="80dp"
+                android:maxHeight="80dp"
+                android:minWidth="80dp"
+                android:minHeight="80dp"
+                android:scaleType="center"
+                android:src="@android:drawable/ic_menu_camera" />
+
+        </com.google.android.flexbox.FlexboxLayout>
+    </ScrollView>
+
+
 </LinearLayout>
